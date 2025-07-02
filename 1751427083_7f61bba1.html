@@ -1,0 +1,2929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.R.V.I.S.I. Just A Really Versatile, Insightful & Soft Intelligence </title>
+    
+    <!-- 
+    =================================================================
+    🎯 FUI TEMPLATE USAGE GUIDE - FUI模板使用指南
+    =================================================================
+    
+    📖 模板说明：
+    这是一个用于3D球状界面的LLM内容生成模板。主要用于快速替换内容而无需重新生成整个界面代码。
+    
+    🔄 主要替换区域：
+    1. DYNAMIC CONTENT ZONE (动态内容区域)
+       - 位置：JavaScript 中的 contentTemplates 数组
+       - 内容：卡片标题和内容
+       - 格式：{ title: 'xxx', content: () => `html内容` }
+    
+    ⚙️ 可选配置：
+    1. 卡片数量：自动根据contentTemplates数组长度确定
+    2. 内容更新间隔：init函数中的setInterval时间
+    
+    🎨 内容样式指南：
+    - 支持HTML标签：<p>, <span>, <br> 等
+    - 可用CSS类：.text-green-400, .code-string, .font-bold 等
+    - 支持动态JS变量：${Date.now()}, ${Math.random()} 等
+    - 推荐使用表情符号和特殊字符增强视觉效果
+    
+    ❌ 不建议修改的区域：
+    - CSS样式定义
+    - JavaScript函数逻辑
+    - HTML结构框架
+    - 物理和动画参数
+    
+    =================================================================
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500&family=Teko:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        html {
+            margin: 0;
+            padding: 0;
+            background: rgb(0, 0, 0) !important;
+        }
+        
+        :root {
+            --fui-primary: #a7d5ff;
+            --fui-secondary: #ffa500;
+            --fui-bg: #03080f;
+            --fui-panel-bg: rgba(15, 35, 60, 0.5);
+            --fui-border-color: rgba(135, 206, 250, 0.3);
+            
+            /* Highlight Colors */
+            --highlight-color-pink: #EC4899;
+            --highlight-color-blue: #3B82F6;
+            --highlight-color-yellow: #FBBF24;
+            --highlight-bg-pink: rgba(236, 72, 153, 0.15);
+            --highlight-border-pink: rgba(236, 72, 153, 0.6);
+            --highlight-bg-blue: rgba(59, 130, 246, 0.15);
+            --highlight-border-blue: rgba(59, 130, 246, 0.6);
+            --highlight-bg-yellow: rgba(251, 191, 36, 0.15);
+            --highlight-border-yellow: rgba(251, 191, 36, 0.6);
+        }
+
+        body {
+            background-color: rgb(8, 20, 35) !important;
+            background-image: radial-gradient(circle at center, rgb(15, 35, 60) 0%, rgb(12, 28, 50) 60%, rgb(8, 20, 35) 85%, rgb(3, 8, 15) 100%) !important;
+            color: var(--fui-primary);
+            font-family: 'Roboto Mono', monospace;
+            overflow: hidden;
+            cursor: grab;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+        .perspective-container {
+            width: 100%;
+            height: 100%;
+            perspective: 2500px;
+            position: absolute;
+            transform-style: preserve-3d;
+        }
+        .scene-origin {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+        .fui-window {
+            position: absolute;
+            top: 50%; left: 50%;
+            background: var(--fui-panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--fui-border-color);
+            border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0, 150, 255, 0.1);
+            transform-style: preserve-3d;
+            transition: box-shadow 0.3s ease, border-color 0.3s ease, background 0.4s ease, opacity 0.5s ease;
+            will-change: transform, background, border-color, opacity;
+            user-select: none;
+        }
+        .fui-window.focused {
+            border-color: rgba(255, 165, 0, 0.7);
+            box-shadow: 0 0 35px rgba(255, 165, 0, 0.6);
+            z-index: 2000 !important;
+        }
+        .fui-header {
+            background: rgba(135, 206, 250, 0.1);
+            padding: 12px 20px;
+            cursor: grab;
+            border-bottom: 1px solid rgba(135, 206, 250, 0.2);
+            font-family: 'Teko', sans-serif;
+            font-size: 1.5rem; /* 24px */
+            letter-spacing: 0.05em;
+        }
+        .fui-content {
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.7;
+            overflow-y: auto;
+            overflow-x: hidden;
+            word-wrap: break-word;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 165, 0, 0.5) transparent;
+        }
+        .fui-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .fui-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .fui-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 165, 0, 0.5);
+            border-radius: 3px;
+        }
+        .fui-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 165, 0, 0.8);
+        }
+        .resize-handle {
+            position: absolute;
+            right: 0; bottom: 0; width: 20px; height: 20px;
+            cursor: se-resize; z-index: 10;
+            border-bottom: 2px solid rgba(255, 165, 0, 0.5);
+            border-right: 2px solid rgba(255, 165, 0, 0.5);
+        }
+        .controls-panel {
+            position: fixed;
+            top: 15px; right: 15px; background: rgba(15, 35, 60, 0.7);
+            backdrop-filter: blur(10px); border: 1px solid var(--fui-border-color);
+            border-radius: 8px; padding: 8px 12px; z-index: 3000;
+            font-family: 'Teko', sans-serif; letter-spacing: 0.05em;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            transform-origin: top right;
+        }
+        
+        .controls-panel.collapsed {
+            width: 44px;
+            height: 44px;
+            padding: 8px;
+            border-radius: 50%;
+        }
+        
+        .controls-toggle-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 165, 0, 0.15);
+            border: 1px solid rgba(255, 165, 0, 0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--fui-secondary);
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        .controls-toggle-btn:hover {
+            background: rgba(255, 165, 0, 0.25);
+            border-color: rgba(255, 165, 0, 0.7);
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 165, 0, 0.3);
+        }
+        
+        .controls-content {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            min-width: 160px;
+        }
+        
+        .controls-panel.collapsed .controls-content {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        
+        .controls-panel.collapsed .controls-toggle-btn {
+            position: relative;
+            top: 0;
+            right: 0;
+            margin: 0;
+        }
+        .control-label { font-size: 0.9rem; color: var(--fui-primary); }
+        .control-value { font-size: 0.9rem; color: var(--fui-secondary); }
+        .control-slider {
+            -webkit-appearance: none; appearance: none;
+            width: 100px; height: 3px; background: rgba(135, 206, 250, 0.3); outline: none;
+            border-radius: 2px; transition: background 0.3s; margin-top: 2px;
+        }
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 14px; height: 14px; background: var(--fui-secondary);
+            cursor: pointer; border-radius: 50%; border: 2px solid var(--fui-bg);
+        }
+        .control-slider::-moz-range-thumb {
+            width: 14px; height: 14px; background: var(--fui-secondary);
+            cursor: pointer; border-radius: 50%; border: 2px solid var(--fui-bg);
+        }
+        .code-keyword { color: #c792ea; }
+        .code-string { color: #c3e88d; }
+        .code-comment { color: #546e7a; }
+        .code-variable { color: #82aaff; }
+
+        /* --- Radial Menu --- */
+        /* 暂时注释掉径向菜单功能 - 2024年更新
+        .radial-menu-container {
+            position: absolute; width: 240px; height: 240px;
+            pointer-events: none; opacity: 0; z-index: 50;
+            clip-path: polygon(50% 50%, 50% 0%, 50% 0%);
+            transition: opacity 0.4s ease-out, clip-path 0.4s cubic-bezier(0.45, 0, 0.55, 1);
+        }
+        .radial-menu-container.active {
+            opacity: 1; pointer-events: auto;
+            clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 50% 0%);
+        }
+        .radial-menu-arc {
+            position: absolute; width: 100%; height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(15, 35, 60, 0.1) 40%, rgba(135, 206, 250, 0.3) 68%, rgba(135, 206, 250, 0.5) 70%, transparent 71%);
+            box-shadow: 0 0 20px rgba(135, 206, 250, 0.3) inset;
+        }
+        .radial-menu-item {
+            position: absolute; top: 50%; left: 50%;
+            margin: -18px; width: 36px; height: 36px;
+            background: rgba(15, 35, 60, 0.7);
+            border: 1px solid rgba(135, 206, 250, 0.5);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--fui-primary); opacity: 0;
+            transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(0);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out, background 0.2s, border-color 0.2s;
+            transition-delay: var(--delay, 0s);
+        }
+        .radial-menu-container.active .radial-menu-item {
+            transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1);
+            opacity: 1;
+        }
+        .radial-menu-item:hover {
+            background: rgba(255, 165, 0, 0.4);
+            border-color: rgba(255, 165, 0, 0.8);
+            transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.15);
+        }
+        */
+
+        /* --- Marker Dots --- */
+        .marker-dots {
+            position: absolute; top: 15px; right: 15px;
+            display: flex; gap: 8px; z-index: 20;
+        }
+        .marker-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%; cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .marker-dot:hover {
+            transform: scale(1.4);
+            box-shadow: 0 0 6px currentColor;
+        }
+        .dot-pink { background-color: var(--highlight-color-pink); color: var(--highlight-color-pink);}
+        .dot-blue { background-color: var(--highlight-color-blue); color: var(--highlight-color-blue);}
+        .dot-yellow { background-color: var(--highlight-color-yellow); color: var(--highlight-color-yellow);}
+        .fui-window.highlight-pink {
+            background: var(--highlight-bg-pink) !important;
+            border-color: var(--highlight-border-pink);
+        }
+        .fui-window.highlight-blue {
+            background: var(--highlight-bg-blue) !important;
+            border-color: var(--highlight-border-blue);
+        }
+        .fui-window.highlight-yellow {
+            background: var(--highlight-bg-yellow) !important;
+            border-color: var(--highlight-border-yellow);
+        }
+
+        /* --- Center Card Highlight --- */
+        .fui-window.center-highlight {
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3), 0 0 50px rgba(255, 215, 0, 0.15) !important;
+            border-color: rgba(255, 215, 0, 0.5) !important;
+            transform-style: preserve-3d;
+            animation: centerCardPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes centerCardPulse {
+            0%, 100% { 
+                box-shadow: 0 0 25px rgba(255, 215, 0, 0.3), 0 0 50px rgba(255, 215, 0, 0.15);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(255, 215, 0, 0.4), 0 0 60px rgba(255, 215, 0, 0.2);
+            }
+        }
+
+        /* --- 中心定位标记 --- */
+        .center-crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 60px;
+            height: 60px;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .crosshair-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid transparent;
+            border-radius: 50%;
+            animation: crosshairPulse 2s ease-in-out infinite;
+        }
+
+        .crosshair-ring:nth-child(1) {
+            border-color: rgba(135, 206, 250, 0.8);
+            animation-delay: 0s;
+        }
+
+        .crosshair-ring:nth-child(2) {
+            border-color: rgba(255, 165, 0, 0.6);
+            animation-delay: 0.5s;
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+        }
+
+        .crosshair-ring:nth-child(3) {
+            border-color: rgba(135, 206, 250, 0.4);
+            animation-delay: 1s;
+            width: 60%;
+            height: 60%;
+            top: 20%;
+            left: 20%;
+        }
+
+        .crosshair-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, rgba(255, 165, 0, 0.9) 0%, rgba(135, 206, 250, 0.6) 100%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.8);
+            animation: centerDot 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes crosshairPulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.4;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes centerDot {
+            0% {
+                box-shadow: 0 0 20px rgba(255, 165, 0, 0.8);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(255, 165, 0, 1), 0 0 50px rgba(135, 206, 250, 0.5);
+            }
+        }
+
+        /* --- Holographic Light Globe --- */
+        .visual-navigation {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            width: 140px;
+            height: 140px;
+            z-index: 3000;
+            perspective: 600px;
+        }
+        
+        .nav-globe-container {
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            position: relative;
+            animation: holoGlobeFloat 6s ease-in-out infinite;
+        }
+        
+        .nav-globe {
+            width: 100px;
+            height: 100px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transform-style: preserve-3d;
+            border-radius: 50%;
+            background: transparent;
+            overflow: visible;
+        }
+        
+        /* 全息光球外层 */
+        .holo-sphere-outer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, 
+                rgba(167, 213, 255, 0.05) 0%, 
+                rgba(135, 206, 250, 0.12) 30%, 
+                rgba(15, 35, 60, 0.20) 60%,
+                rgba(255, 165, 0, 0.08) 80%,
+                transparent 100%);
+            border: 2px solid rgba(135, 206, 250, 0.3);
+            box-shadow: 
+                0 0 35px rgba(135, 206, 250, 0.3),
+                inset 0 0 25px rgba(167, 213, 255, 0.15),
+                inset 0 0 50px rgba(255, 165, 0, 0.05);
+            animation: holoSphereOuter 8s ease-in-out infinite;
+        }
+        
+        /* 全息光球内层 */
+        .holo-sphere-inner {
+            position: absolute;
+            width: 75%;
+            height: 75%;
+            top: 12.5%;
+            left: 12.5%;
+            border-radius: 50%;
+            background: radial-gradient(circle, 
+                rgba(167, 213, 255, 0.15) 0%, 
+                rgba(135, 206, 250, 0.08) 40%, 
+                rgba(255, 165, 0, 0.05) 70%,
+                transparent 85%);
+            border: 1px solid rgba(135, 206, 250, 0.4);
+            box-shadow: 
+                0 0 20px rgba(135, 206, 250, 0.2),
+                inset 0 0 15px rgba(167, 213, 255, 0.1);
+            animation: holoSphereInner 5s ease-in-out infinite reverse;
+        }
+        
+        /* 光波纹理层 */
+        .light-wave {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                transparent 0deg,
+                rgba(135, 206, 250, 0.1) 45deg,
+                transparent 90deg,
+                rgba(167, 213, 255, 0.15) 135deg,
+                transparent 180deg,
+                rgba(135, 206, 250, 0.08) 225deg,
+                transparent 270deg,
+                rgba(167, 213, 255, 0.12) 315deg,
+                transparent 360deg
+            );
+            animation: lightWaveRotate 12s linear infinite;
+        }
+        
+        .light-wave::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                rgba(255, 165, 0, 0.05) 0deg,
+                transparent 60deg,
+                rgba(255, 165, 0, 0.1) 120deg,
+                transparent 180deg,
+                rgba(255, 165, 0, 0.08) 240deg,
+                transparent 300deg,
+                rgba(255, 165, 0, 0.06) 360deg
+            );
+            animation: lightWaveRotate 8s linear infinite reverse;
+        }
+        
+        /* 脉冲光环 */
+        .pulse-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(135, 206, 250, 0.4);
+            animation: pulsateRing 4s ease-in-out infinite;
+        }
+        
+        .pulse-ring:nth-child(1) {
+            width: 120%;
+            height: 120%;
+            top: -10%;
+            left: -10%;
+            animation-delay: 0s;
+        }
+        
+        .pulse-ring:nth-child(2) {
+            width: 90%;
+            height: 90%;
+            top: 5%;
+            left: 5%;
+            animation-delay: 1.5s;
+            border-color: rgba(255, 165, 0, 0.3);
+        }
+        
+        .pulse-ring:nth-child(3) {
+            width: 60%;
+            height: 60%;
+            top: 20%;
+            left: 20%;
+            animation-delay: 3s;
+            border-color: rgba(167, 213, 255, 0.5);
+        }
+        
+        /* 光点（卡片指示器） */
+        .nav-card-dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 165, 0, 0.8);
+            border-radius: 50%;
+            transform-style: preserve-3d;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 0 8px rgba(255, 165, 0, 0.6),
+                0 0 16px rgba(255, 165, 0, 0.3);
+            animation: dotFloat 3s ease-in-out infinite;
+        }
+        
+        .nav-card-dot.center-dot {
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 215, 0, 1);
+            box-shadow: 
+                0 0 12px rgba(255, 215, 0, 0.8),
+                0 0 24px rgba(255, 215, 0, 0.4),
+                0 0 36px rgba(255, 215, 0, 0.2);
+            animation: centerDotPulse 2s ease-in-out infinite, dotFloat 3s ease-in-out infinite;
+        }
+        
+        .nav-card-dot:hover {
+            transform: scale(2);
+            z-index: 10;
+            box-shadow: 
+                0 0 16px rgba(255, 165, 0, 1),
+                0 0 32px rgba(255, 165, 0, 0.6);
+        }
+        
+        /* 深度增强层 */
+        .holo-depth-enhancer {
+            position: absolute;
+            width: 90%;
+            height: 90%;
+            top: 5%;
+            left: 5%;
+            border-radius: 50%;
+            background: 
+                radial-gradient(ellipse 80% 60% at 25% 25%, 
+                    rgba(167, 213, 255, 0.12) 0%, 
+                    transparent 50%),
+                radial-gradient(ellipse 60% 80% at 75% 75%, 
+                    rgba(255, 165, 0, 0.08) 0%, 
+                    transparent 50%);
+            border: 1px solid rgba(135, 206, 250, 0.25);
+            opacity: 0.8;
+            animation: depthEnhancer 7s ease-in-out infinite;
+        }
+        
+        /* 全息网格线 */
+        .holo-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: 
+                linear-gradient(90deg, transparent 48%, rgba(135, 206, 250, 0.1) 49%, rgba(135, 206, 250, 0.1) 51%, transparent 52%),
+                linear-gradient(0deg, transparent 48%, rgba(135, 206, 250, 0.1) 49%, rgba(135, 206, 250, 0.1) 51%, transparent 52%),
+                radial-gradient(circle, transparent 20%, rgba(135, 206, 250, 0.05) 21%, rgba(135, 206, 250, 0.05) 22%, transparent 23%),
+                radial-gradient(circle, transparent 40%, rgba(135, 206, 250, 0.05) 41%, rgba(135, 206, 250, 0.05) 42%, transparent 43%),
+                radial-gradient(circle, transparent 60%, rgba(135, 206, 250, 0.05) 61%, rgba(135, 206, 250, 0.05) 62%, transparent 63%);
+            animation: holoGridPulse 6s ease-in-out infinite;
+        }
+        
+        .nav-globe-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Teko', sans-serif;
+            font-size: 0.75rem;
+            color: var(--fui-primary);
+            text-align: center;
+            opacity: 0.6;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 10px rgba(135, 206, 250, 0.5);
+            animation: labelGlow 4s ease-in-out infinite;
+        }
+        
+        /* 动画定义 */
+        @keyframes holoGlobeFloat {
+            0%, 100% { transform: translateY(0px) rotateZ(0deg); }
+            25% { transform: translateY(-2px) rotateZ(0.5deg); }
+            50% { transform: translateY(0px) rotateZ(1deg); }
+            75% { transform: translateY(2px) rotateZ(0.5deg); }
+        }
+        
+        @keyframes holoSphereOuter {
+            0%, 100% { 
+                opacity: 0.3;
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(135, 206, 250, 0.2);
+            }
+            50% { 
+                opacity: 0.6;
+                transform: scale(1.05);
+                box-shadow: 0 0 40px rgba(135, 206, 250, 0.4);
+            }
+        }
+        
+        @keyframes holoSphereInner {
+            0%, 100% { 
+                opacity: 0.4;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+        
+        @keyframes lightWaveRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulsateRing {
+            0%, 100% { 
+                opacity: 0.2;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.6;
+                transform: scale(1.1);
+            }
+        }
+        
+        @keyframes centerDotPulse {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 12px rgba(255, 215, 0, 0.8),
+                    0 0 24px rgba(255, 215, 0, 0.4);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 20px rgba(255, 215, 0, 1),
+                    0 0 40px rgba(255, 215, 0, 0.6),
+                    0 0 60px rgba(255, 215, 0, 0.3);
+                transform: scale(1.3);
+            }
+        }
+        
+        @keyframes dotFloat {
+            0%, 100% { transform: translateZ(0px); }
+            50% { transform: translateZ(5px); }
+        }
+        
+        @keyframes holoGridPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes depthEnhancer {
+            0%, 100% { 
+                opacity: 0.6;
+                transform: scale(1) rotateZ(0deg);
+            }
+            25% { 
+                opacity: 0.8;
+                transform: scale(1.02) rotateZ(90deg);
+            }
+            50% { 
+                opacity: 0.9;
+                transform: scale(1.05) rotateZ(180deg);
+            }
+            75% { 
+                opacity: 0.8;
+                transform: scale(1.02) rotateZ(270deg);
+            }
+        }
+        
+        @keyframes labelGlow {
+            0%, 100% { 
+                opacity: 0.6;
+                text-shadow: 0 0 10px rgba(135, 206, 250, 0.5);
+            }
+            50% { 
+                opacity: 0.9;
+                text-shadow: 0 0 20px rgba(135, 206, 250, 0.8);
+            }
+        }
+
+        /* --- Thumbnail Navigation Styles --- */
+        .thumbnail-navigation {
+            position: fixed;
+            bottom: 15px;
+            left: 15px;
+            display: flex;
+            align-items: flex-end;
+            z-index: 3000;
+            height: 60px;
+            max-width: 60%;
+            gap: 8px;
+        }
+        
+        .nav-arrow {
+            width: 36px;
+            height: 36px;
+            background: var(--fui-panel-bg);
+            border: 1px solid var(--fui-border-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--fui-primary);
+            font-size: 16px;
+            user-select: none;
+        }
+        
+        .nav-arrow:hover {
+            border-color: var(--fui-secondary);
+            background: rgba(255, 165, 0, 0.1);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(255, 165, 0, 0.2);
+        }
+        
+        .nav-arrow:active {
+            transform: scale(0.95);
+        }
+        
+        .nav-arrow.rotating {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        
+        .thumbnail-container {
+            display: flex;
+            align-items: flex-end;
+            height: 60px;
+            overflow-x: auto;
+            overflow-y: visible;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            flex: 1;
+            min-width: 0;
+        }
+        .thumbnail-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .thumbnail-card {
+            width: 45px;
+            height: 32px;
+            background: var(--fui-panel-bg);
+            border: 1px solid var(--fui-border-color);
+            border-radius: 3px;
+            margin-right: -12px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            font-size: 7px;
+            color: var(--fui-primary);
+            opacity: 1;
+            transform: translateX(0px) scale(1);
+        }
+        
+        .thumbnail-card.slide-out {
+            opacity: 0;
+            transform: translateX(-60px) scale(0.8);
+            pointer-events: none;
+        }
+        
+        .thumbnail-card.slide-in {
+            animation: slideInFromLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        
+        @keyframes slideInFromLeft {
+            0% {
+                opacity: 0;
+                transform: translateX(-60px) scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0px) scale(1);
+            }
+        }
+        
+        .thumbnail-card:hover {
+            transform: translateY(-3px) scale(1.05);
+            border-color: var(--fui-secondary);
+            margin-right: -8px;
+            z-index: 10;
+        }
+        
+        .thumbnail-card.active {
+            transform: translateY(-8px) scale(1.1);
+            border-color: var(--fui-secondary);
+            box-shadow: 0 3px 10px rgba(255, 165, 0, 0.4);
+            margin-right: -8px;
+            z-index: 15;
+        }
+        
+        .thumbnail-header {
+            background: rgba(135, 206, 250, 0.1);
+            padding: 2px 4px;
+            font-size: 7px;
+            border-bottom: 1px solid rgba(135, 206, 250, 0.2);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .thumbnail-content {
+            padding: 2px 4px;
+            font-size: 6px;
+            line-height: 1.2;
+            flex: 1;
+            overflow: hidden;
+            opacity: 0.7;
+        }
+
+        /* New styles for outline panel */
+        .outline-panel {
+            position: fixed;
+            width: 250px;
+            height: 0;
+            background: var(--fui-panel-bg);
+            border: 1px solid var(--fui-border-color);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            transform-origin: bottom left;
+            z-index: 2999;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 0 rgba(255, 165, 0, 0);
+        }
+
+        .outline-panel.active {
+            height: 200px;
+            opacity: 1;
+            transform: translateY(0px) scale(1);
+            box-shadow: 0 8px 25px rgba(255, 165, 0, 0.15), 0 3px 10px rgba(15, 35, 60, 0.3);
+        }
+
+        .outline-header {
+            padding: 10px 15px;
+            font-family: 'Teko', sans-serif;
+            font-size: 1.1rem;
+            color: var(--fui-secondary);
+            border-bottom: 1px solid rgba(255, 165, 0, 0.2);
+            text-align: center;
+            letter-spacing: 0.05em;
+        }
+
+        .outline-list {
+            list-style: none;
+            padding: 10px 15px;
+            margin: 0;
+            overflow-y: auto;
+            flex-grow: 1; /* Allow list to take available height */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 165, 0, 0.5) transparent;
+        }
+
+        .outline-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .outline-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .outline-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 165, 0, 0.5);
+            border-radius: 3px;
+        }
+        .outline-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 165, 0, 0.8);
+        }
+
+        .outline-list-item {
+            padding: 8px 0;
+            color: var(--fui-primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .outline-list-item:hover {
+            color: var(--fui-secondary);
+            transform: translateX(5px);
+        }
+
+        /* Adjust thumbnail-navigation for outline panel */
+        .thumbnail-navigation {
+            position: fixed; /* Keep fixed */
+            bottom: 15px;
+            left: 15px;
+            display: flex;
+            align-items: flex-end;
+            z-index: 3000;
+            height: 60px; /* Base height */
+            max-width: 60%;
+            gap: 8px;
+            /* Add transition for width/transform if needed */
+            transition: width 0.4s ease-out, transform 0.4s ease-out;
+        }
+
+        /* Remove hidden-by-outline classes as they are no longer needed */
+        /* .thumbnail-container.hidden-by-outline, .nav-arrow.hidden-by-outline are removed */
+
+        /* ===== 粒子背景网络效果 ===== */
+        .particle-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ===== 右下角JARVIS动态效果 ===== */
+        .jarvis-corner-effect {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 200px;
+            z-index: 2500;
+            pointer-events: none;
+        }
+
+        .jarvis-corner-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 3D光球容器 */
+        .corner-sphere-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center, 
+                rgba(135, 206, 250, 0.05) 0%, 
+                rgba(135, 206, 250, 0.15) 40%, 
+                transparent 70%);
+            border: 1px solid rgba(135, 206, 250, 0.2);
+            box-shadow: 0 0 20px rgba(135, 206, 250, 0.1);
+        }
+
+        .corner-sphere-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+
+        /* 科技图标动画 */
+        .corner-tech-icons {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 180px;
+        }
+
+        .corner-tech-icon {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            opacity: 0;
+            color: #87CEEB;
+            filter: drop-shadow(0 0 3px currentColor);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .corner-tech-icon.corner-animate-in {
+            animation: cornerIconExpandIn 0.6s ease-out forwards;
+        }
+
+        .corner-tech-icon.corner-animate-out {
+            animation: cornerIconExpandOut 0.4s ease-in forwards;
+        }
+
+        @keyframes cornerIconExpandIn {
+            0% {
+                opacity: 0;
+                transform: scale(0) rotate(0deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(360deg);
+            }
+        }
+
+        @keyframes cornerIconExpandOut {
+            0% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) rotate(-360deg);
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <!-- 粒子背景网络 -->
+    <div class="particle-background">
+        <canvas class="particle-canvas" id="particleCanvas"></canvas>
+    </div>
+
+    <div id="scene" class="perspective-container">
+        <div id="origin" class="scene-origin">
+            <!-- Connectors will be injected here -->
+        </div>
+    </div>
+    
+
+
+    <!-- Holographic Light Globe -->
+    <div class="visual-navigation">
+        <div id="navGlobeContainer" class="nav-globe-container">
+            <div id="navGlobe" class="nav-globe">
+                <!-- 全息球体层次结构 -->
+                <div class="holo-sphere-outer"></div>
+                <div class="holo-sphere-inner"></div>
+                <div class="holo-depth-enhancer"></div>
+                <div class="light-wave"></div>
+                <div class="pulse-ring"></div>
+                <div class="pulse-ring"></div>
+                <div class="pulse-ring"></div>
+                <div class="holo-grid"></div>
+                <!-- Card dots will be generated dynamically -->
+            </div>
+
+        </div>
+    </div>
+
+    <div id="controls" class="controls-panel collapsed">
+        <div class="controls-toggle-btn" id="controlsToggle" title="布局设置">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+            </svg>
+        </div>
+        <div class="controls-content">
+            <div class="flex items-center justify-between mb-1">
+                <label for="radiusSlider" class="control-label mr-3">球体半径</label>
+                <span id="radiusValue" class="control-value">1.2</span>
+            </div>
+            <input type="range" id="radiusSlider" class="control-slider" min="0.3" max="2.5" step="0.1" value="1.2">
+            <div class="flex items-center justify-between mt-2 mb-1">
+                <label for="depthSlider" class="control-label mr-3">高度&纵深</label>
+                <span id="depthValue" class="control-value">0.6</span>
+            </div>
+            <input type="range" id="depthSlider" class="control-slider" min="0.0" max="2.0" step="0.1" value="0.6">
+            <div class="flex items-center justify-between mt-2 mb-1">
+                <label for="scaleSlider" class="control-label mr-3">场景缩放</label>
+                <span id="scaleValue" class="control-value">0.5</span>
+            </div>
+            <input type="range" id="scaleSlider" class="control-slider" min="0.3" max="2.5" step="0.1" value="0.5">
+        </div>
+    </div>
+
+    <div class="thumbnail-navigation">
+        <div id="outlineToggle" class="nav-arrow" title="显示/隐藏大纲">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </div>
+        <div id="prevArrow" class="nav-arrow" title="上一张卡片">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+        </div>
+        <div id="thumbnailContainer" class="thumbnail-container">
+            <!-- 缩略图将在这里动态生成 -->
+        </div>
+        <div id="nextArrow" class="nav-arrow" title="下一张卡片">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </div>
+    </div>
+
+    <div id="outlinePanel" class="outline-panel">
+        <div class="outline-header">卡片大纲</div>
+        <ul id="outlineList" class="outline-list">
+            <!-- 大纲列表项将在这里动态生成 -->
+        </ul>
+    </div>
+
+    <!-- 右下角JARVIS动态效果 -->
+    <div class="jarvis-corner-effect">
+        <div class="jarvis-corner-container">
+            <!-- 3D光球容器 -->
+            <div class="corner-sphere-container">
+                <canvas class="corner-sphere-canvas" id="cornerSphereCanvas" width="250" height="150"></canvas>
+            </div>
+            
+            <!-- 科技图标动画 -->
+            <div class="corner-tech-icons" id="cornerTechIcons">
+                <!-- 图标将由JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // ⚙️ CONFIGURATION ZONE - 配置区域 
+        // =================================================================
+        // 说明：这些是主要的配置参数，可以根据需要调整
+        // LLM替换指南：
+        // - 卡片数量现在完全由contentTemplates数组长度自动决定，无需手动配置
+        // - 其他参数一般不需要修改，除非有特殊需求
+        // =================================================================
+        
+        const scene = document.getElementById('scene');
+        const origin = document.getElementById('origin');
+
+        // =================================================================
+        // 🔧 PHYSICS & LAYOUT PARAMETERS - 物理和布局参数 
+        // =================================================================
+        // 说明：这些参数控制界面的物理行为和视觉布局
+        // ❌ 不建议修改：这些是经过调优的参数，修改可能影响交互体验
+        // =================================================================
+        
+        // Physics and animation parameters - 物理动画参数
+        const damping = 0.92;                    // 阻尼系数
+        const rotationFactor = 0.3;              // 旋转因子
+        const springFactor = 0.04;               // 弹簧因子
+        const springDamping = 0.85;              // 弹簧阻尼
+        const focusSpringFactor = 0.1;           // 聚焦弹簧因子
+        const focusSpringDamping = 0.75;         // 聚焦弹簧阻尼
+        const focusScaleSpeed = 0.15;            // 聚焦缩放速度
+
+        // Layout parameters - 布局参数
+        let radiusFactor = 1.2;      // 球体半径因子（影响卡片分布范围）
+        let ySpreadFactor = 0.6;     // Y轴高度和Z轴纵深因子
+
+        // =================================================================
+        // 🔄 STATE VARIABLES - 状态变量 
+        // =================================================================
+        // 说明：这些是系统运行时的状态变量
+        // ❌ 不建议修改：这些是内部状态管理，修改可能导致功能异常
+        // =================================================================
+        
+        // Core state variables - 核心状态变量
+        let windows = [];                       // 窗口数组
+        let thumbnails = [];                    // 缩略图数组
+        let navGlobeDots = [];                  // 导航球点数组
+        let currentCenterIndex = 0;             // 当前中心卡片索引
+        let focusedWindow = null;               // 当前聚焦的窗口
+        
+        // Rotation state - 旋转状态
+        let isRotating = false;                 // 是否正在旋转
+        let rotationTargetIndex = -1;           // 目标旋转索引
+        let rotationStartTime = 0;              // 旋转开始时间
+        
+        // Interaction state - 交互状态
+        let resizingWindow = null;              // 正在调整大小的窗口
+        let lastMouse = { x: 0, y: 0 };         // 最后鼠标位置
+        let isRotatingScene = false;            // 是否正在旋转场景
+        let isResizing = false;                 // 是否正在调整大小
+        let sceneRotation = { x: -20, y: 30 };  // 场景旋转角度
+        let sceneVelocity = { x: 0, y: 0 };     // 场景旋转速度
+        let sceneScale = 0.5;                   // 场景缩放
+        let targetScale = 0.5;                  // 目标缩放
+        // 暂时注释掉径向菜单相关变量 - 2024年更新
+        // let longPressTimer = null;              // 长按定时器
+        // let activeMenuWindow = null;            // 活动菜单窗口
+        // const longPressDuration = 400;          // 长按持续时间(ms)
+        let startDragPos = { x: 0, y: 0 };      // 开始拖拽位置
+
+        // =================================================================
+        // 🔄 DYNAMIC CONTENT ZONE - 可动态替换的内容区域
+        // =================================================================
+        // 说明：这个数组包含所有卡片的内容模板，是主要的内容替换区域
+        // LLM替换指南：
+        // - 可以修改：title（标题）、content函数的返回内容
+        // - 不要修改：数组结构、对象结构 { title: '', content: () => `` }
+        // - 内容支持：HTML标签、CSS类名、动态变量
+        // - 数量要求：完全自由！添加或删除项目，卡片数量会自动适配
+        // =================================================================
+        
+        const contentTemplates = [
+  {
+    title: 'SEQ_01: CORE_GENESIS',
+    content: () => `
+      <p><strong>// 解码公司核心基因...</strong></p>
+      <p><strong>第一次飞跃：抓住智能手机金属化浪潮</strong></p>
+      <ul>
+        <li><strong>时机:</strong> 行业变革前夜。</li>
+        <li><strong>行动:</strong> 果断将全部资源投入<span class="text-yellow-400">金属机壳</span>的研发与制造。</li>
+        <li><strong>成果:</strong> 成功切入国产智能手机龙头企业供应链，开启第一轮高速增长。</li>
+      </ul>
+      <p><strong>定义:</strong> 这不仅仅是业务扩张，这是塑造公司敢于变革、果断投入核心基因的<span class="code-string">“第一次豪赌”</span>。</p>
+      <p class="code-comment">-- 结论：公司的灵魂深处，是对产业终局判断的自信和All-in的勇气。 --</p>`
+  },
+  {
+    title: 'SEQ_02: STRATEGIC_PIVOT',
+    content: () => `
+      <p><strong>// 分析关键战略转折点...</strong></p>
+      <p><strong>转型背景 (2016年):</strong></p>
+      <ul>
+        <li><strong>风险暴露:</strong> 国内客户占比高达<span class="text-red-500">90%</span>，过度依赖单一市场。</li>
+        <li><strong>管理层预判:</strong> 认识到客户结构和市场单一的巨大风险，启动主动转型。</li>
+      </ul>
+      <p><strong>转型的“阵痛” (2017-2019):</strong></p>
+      <ul>
+        <li><strong>业绩表象:</strong> 增长停滞，利润承压。外界解读为“竞争力下滑”。</li>
+        <li><strong>内部真相:</strong> 为获取<span class="code-string">“顶级俱乐部入场券”</span>而主动支付的必要成本。</li>
+        <li><strong>代价清单:</strong> 更长的研发验证周期、更高的前期成本、对质量管理体系的<span class="text-yellow-400">全面重塑</span>。</li>
+      </ul>
+      <p><strong>战略成果:</strong> 成功赢得与<span class="code-variable">苹果、三星</span>等全球领导品牌的深度合作，为后续发展奠定了坚实的技术与管理基础。</p>
+      <p class="code-comment">-- 结论：这次“卧薪尝胆”是理解公司当前竞争力的关键钥匙。 --</p>`
+  },
+  {
+    title: 'SEQ_03: ENGINE_ANALYSIS_A',
+    content: () => `
+      <p><strong>// 解析业务引擎：基本盘...</strong></p>
+      <p><strong>核心作用:</strong></p>
+      <ul>
+        <li><span class="text-green-400">技术锻造炉:</span> 来自苹果、三星等客户对创新、精度、成本的极致要求，是技术进步的最强驱动力。</li>
+        <li><span class="text-green-400">现金流发动机:</span> 为公司战略扩张提供稳定、可靠的资金支持。</li>
+      </ul>
+      <p><strong>技术锻造实例:</strong></p>
+      <ul>
+        <li><strong>材料科学:</strong> 成功攻克<span class="text-yellow-400">三星S24钛合金中框</span>的复杂加工工艺。</li>
+        <li><strong>自动化:</strong> 应对消费电子高昂的人力成本和对一致性的要求，大力发展生产自动化。</li>
+        <li><strong>工艺工程:</strong> 在冲压、焊接、抛光等领域积累了世界级的Know-how。</li>
+      </ul>
+      <p class="code-comment">-- 结论：没有这个“基本盘”的高强度锤炼，就没有向新领域扩张的技术资本。 --</p>`
+  },
+  {
+    title: 'SEQ_04: ENGINE_ANALYSIS_B',
+    content: () => `
+      <p><strong>// 解析业务引擎：抢滩阵地...</strong></p>
+      <p><strong>核心逻辑:</strong> <span class="text-yellow-400">核心工艺的跨领域迁移</span></p>
+      <p><strong>技术复用路径:</strong></p>
+      <ul>
+        <li><strong>高精度金属冲压:</strong> 从手机中框 -> <span class="code-variable">动力电池结构件</span></li>
+        <li><strong>精密焊接技术:</strong> 从微型组件 -> <span class="code-variable">Busbar (复合铜铝排)</span></li>
+        <li><strong>自动化组装:</strong> 从手机产线 -> <span class="code-variable">高压连接器</span>生产</li>
+      </ul>
+      <p><strong>战略布局:</strong></p>
+      <ul>
+        <li>大规模投资建厂，锁定核心区域：<span class="code-string">四川宜宾、自贡，江苏常州，福建宁德</span>。</li>
+        <li>深度绑定<span class="code-variable">宁德时代、特斯拉</span>等头部客户。</li>
+      </ul>
+      <p class="code-comment">-- 结论：这不是从0到1的创业，而是从1到N的降维打击，是公司平台化能力的直接体现。 --</p>`
+  },
+  {
+    title: 'SEQ_05: SYSTEM_SYNERGY',
+    content: () => `
+      <p><strong>// 分析业务生态协同逻辑...</strong></p>
+      <p><strong>核心循环:</strong></p>
+      <ul>
+        <li>消费电子 (“基本盘”) → 提供 <span class="text-green-400">技术</span> + <span class="text-green-400">现金流</span></li>
+        <li>新能源 (“抢滩阵地”) → 消耗资源，构建<span class="text-yellow-400">全新增长曲线</span></li>
+      </ul>
+      <p><strong>内在叙事:</strong> “基本盘”的技术和现金流，是“抢滩阵地”快速崛起的<span class="code-string">“燃料和弹药”</span>。</p>
+      <p><strong>未来的触角：“侦察兵”业务</strong></p>
+      <ul>
+        <li><strong>布局领域:</strong> <span class="code-variable">机器人</span>、<span class="code-variable">半导体装备</span>等。</li>
+        <li><strong>战略作用:</strong> 虽非主要收入来源，但它们是探索下一代技术浪潮的“眼睛和耳朵”，确保公司在未来的产业变革中不会错失先机。</li>
+      </ul>
+      <p class="code-comment">-- 结论：三者构成了“现在-未来-更远的未来”的战略梯队，实现了风险对冲和持续成长。 --</p>`
+  },
+  {
+    title: 'SEQ_06: COMPASS_METRIC_CASHFLOW',
+    content: () => `
+      <p><strong>// 加载独特分析模块 1...</strong></p>
+      <p><strong>核心问题:</strong> “投入的数十亿资本，正在以多快的速度、多高的效率，转化为能够产生稳定现金流的优质运营资产？”</p>
+      <p><strong>仪表盘指标: <span class="text-yellow-400">新业务产能爬坡效率</span></strong></p>
+      <ul>
+        <li><strong>转化时间差:</strong> 计算<span class="code-variable">“购建固定资产...支付的现金”</span>达峰，到<span class="code-variable">新业务收入</span>出现显著加速拐点的时间差。</li>
+        <li><strong>转化率:</strong> 在整个投资周期内（如2020-2022），<span class="code-variable">新增“经营现金流净额”</span>与<span class="code-variable">累计资本开支总额</span>的比率。</li>
+      </ul>
+      <p><strong>实证信号:</strong> 2020-2022年密集资本投入后，<span class="code-variable">2023年</span>在营收同比下降9.74%的情况下，经营现金流净额(OCF)却从9.37亿飙升至<span class="text-green-400">22.28亿</span>，增长<span class="text-green-400">138%</span>。</p>
+      <p class="code-comment">-- 这个信号比净利润转正要早得多，也更能说明战略的成功。 --</p>`
+  },
+  {
+    title: 'SEQ_07: COMPASS_METRIC_PLATFORM',
+    content: () => `
+      <p><strong>// 加载独特分析模块 2...</strong></p>
+      <p><strong>价值评估框架: <span class="text-yellow-400">工艺平台转化率</span></strong></p>
+      <ul>
+        <li><strong>深度轴:</strong> 该项目在多大程度上推动了某一特定工艺（如抛光、焊接、冲压）的技术前沿？</li>
+        <li><strong>广度轴:</strong> 这项工艺突破能够被应用到多少个业务单元中？（手机、电脑、手表、电池、Busbar...）</li>
+      </ul>
+      <p><strong>价值体现: <span class="code-string">“创新的规模经济”</span></strong></p>
+      <ul>
+        <li><strong>案例1:</strong> 年报中提到的<span class="code-variable">“离心流体抛研工艺”</span>，是一项可用于任何高光洁度金属表面的核心能力，而非局限于某款手机。</li>
+        <li><strong>案例2:</strong> <span class="code-variable">钛合金加工技术</span>的突破，意味着公司已获得进入更高价值（如航空、医疗）领域的技术门票。</li>
+      </ul>
+      <p class="code-comment">-- 结论：这解释了为何公司进入新领域的资本效率远高于从零开始的竞争者。 --</p>`
+  },
+  {
+    title: 'SEQ_08: COMPASS_METRIC_ELASTICITY',
+    content: () => `
+      <p><strong>// 加载独特分析模块 3...</strong></p>
+      <p><strong>核心先行指标: <span class="text-yellow-400">OCF与净利润的“剪刀差”</span></strong></p>
+      <p><strong>现象:</strong> 当OCF的增长远超净利润，甚至在净利润微薄或亏损时OCF依然强劲，即为强烈看涨信号。</p>
+      <p><strong>数据解剖 (2023):</strong></p>
+      <ul>
+        <li>经营现金流 (OCF): <span class="text-green-400">22.28 亿元</span></li>
+        <li>归母净利润: 0.86 亿元</li>
+        <li><strong>“剪刀差”规模: <span class="code-variable">21.42 亿元</span></strong></li>
+      </ul>
+      <p><strong>逻辑揭示:</strong> OCF加回了<span class="text-red-500">高额折旧</span>等非现金支出，更真实地反映主营业务“造血”能力。这21.42亿的差额，就是目前被会计处理方式“掩盖”的、但真实存在的运营成果。它将在未来几年随着资本开支常态化而逐步<span class="code-string">“释放”</span>到利润表中。</p>
+      <p class="code-comment">-- 结论：2023年“收入降，利润增”的“反常”业绩，正是这一逻辑的兑现初期。 --</p>`
+  },
+  {
+    title: 'SEQ_09: DATA_LOG_FINANCIAL',
+    content: () => `
+      <p><strong>// 正在加载财务数据日志 (2019-2023)...</strong></p>
+      <pre style="background-color: #1a1a1a; color: #f0f0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.875rem; line-height: 1.25rem; white-space: pre;">
+年度 | 营收 | 净利 |  OCF  | 资本开支 | OCF/净利
+-------------------------------------------------------
+2023 | 137.2| 0.86 | 22.28 |   13.71  |  25.91x
+2022 | 152.0| 0.43 |  9.37 |   16.12  |  21.79x
+2021 | 110.1|-9.71 | -0.27 |   17.82  |   0.03x
+2020 | 98.0 | 6.02 | 17.76 |   10.90  |   2.95x
+2019 | 86.6 | 0.84 | 10.15 |    8.01  |  12.08x</pre>
+      <p><strong>数据叙事:</strong></p>
+      <ul>
+        <li><span class="text-red-500">2021年:</span> 资本开支达到<span class="code-variable">17.82亿</span>顶峰，OCF为负，净利巨亏，是战略投入最痛苦的时期。</li>
+        <li><span class="text-green-400">2023年:</span> 资本开支回归常态，OCF飙升至<span class="code-variable">22.28亿</span>，OCF/净利比高达<span class="code-variable">25.91倍</span>，完美印证“剪刀差”逻辑和现金流转化成功。</li>
+      </ul>
+      <p class="code-comment">-- 数据不会说谎，这清晰地勾勒出了战略转型的U型反转路径。 --</p>`
+  },
+  {
+    title: 'SEQ_10: DATA_LOG_BUSINESS',
+    content: () => `
+      <p><strong>// 正在加载业务结构日志 (2021-2023)...</strong></p>
+      <pre style="background-color: #1a1a1a; color: #f0f0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.875rem; line-height: 1.25rem; white-space: pre;">
+年度 | 总营收 | 消费电子 | 新能源 | 新能源增速 | 新能源占比
+-----------------------------------------------------------------
+2023 | 137.22 |  101.32  |  35.40  |    43.46%  |   25.80%
+2022 | 152.01 |  127.34  |  24.67  |   118.51%  |   16.23%
+2021 | 110.09 |   98.80  |  11.29  |   124.60%  |   10.25%</pre>
+      <p><strong>数据解读:</strong></p>
+      <ul>
+        <li><strong>增长贡献:</strong> 新能源业务在两年内收入增长了<span class="text-green-400">213%</span>（从11.29亿到35.40亿）。</li>
+        <li><strong>结构重要性:</strong> 收入占比从<span class="code-variable">10.25%</span>迅速攀升至<span class="code-variable">25.80%</span>，成为驱动公司价值重估的核心引擎。</li>
+      </ul>
+      <p class="code-comment">-- 该数据解释了为何在消费电子“基本盘”短期疲软时，公司依然能实现现金流和盈利能力的结构性修复。 --</p>`
+  },
+  {
+    title: 'SEQ_11: FUTURE_DIRECTIVE',
+    content: () => `
+      <p><strong>// 推演公司最终形态...</strong></p>
+      <p><strong>愿景升级:</strong> 从“为产品制造零件”到“为行业提供平台”。</p>
+      <p><strong>赋能逻辑:</strong> 利用在精密制造领域积累的<span class="text-yellow-400">普适性工艺平台</span>，服务任何有大规模、高精度、复杂零部件需求的尖端行业。</p>
+      <p><strong>潜在目标领域:</strong></p>
+      <ul>
+        <li><span class="code-variable">人形机器人:</span> 复杂关节、高精度传感器外壳。</li>
+        <li><span class="code-variable">高端医疗器械:</span> 精密手术工具、植入物。</li>
+        <li><span class="code-variable">航空航天:</span> 轻量化、高强度的结构件。</li>
+      </ul>
+      <p><strong>全球化执行:</strong> 在<span class="code-string">越南、墨西哥</span>设厂并计划进入<span class="code-string">欧洲</span>，不是简单的产能扩张，而是将<span class="code-string">“工艺平台”</span>延伸至全球，服务全球客户的战略步骤。</p>`
+  },
+  {
+    title: 'SEQ_12: RISK_MATRIX_OPERATION',
+    content: () => `
+      <p><strong>// 正在扫描运营风险...</strong></p>
+      <p><strong>风险源:</strong> <span class="text-red-500">双线作战 (Dual-Front War)</span></p>
+      <p><strong>内在冲突:</strong></p>
+      <ul>
+        <li><strong>消费电子:</strong> 要求<span class="code-string">“极速迭代、柔性响应”</span>，以季度甚至月为单位。</li>
+        <li><strong>新能源汽车:</strong> 要求<span class="code-string">“长期稳定、极致可靠”</span>，以年为单位，生命周期长达5-10年。</li>
+      </ul>
+      <p><strong>核心挑战:</strong></p>
+      <ul>
+        <li><strong>资源调配:</strong> 如何在两个“吞金巨兽”之间做出最优的资本和人才分配？</li>
+        <li><strong>管理复杂度:</strong> 两套截然不同的研发、生产、质量管理体系能否高效并行？</li>
+        <li><strong>文化整合:</strong> 如何让习惯“短跑”的团队和习惯“长跑”的团队在同一家公司内协同作战？</li>
+      </ul>
+      <p class="code-comment">-- 这是对公司中枢神经系统的极限压力测试。 --</p>`
+  },
+  {
+    title: 'SEQ_13: RISK_MATRIX_CONCENTRATION',
+    content: () => `
+      <p><strong>// 正在扫描客户集中度风险...</strong></p>
+      <p><strong>风险源:</strong> <span class="text-red-500">金色手铐 (Golden Handcuffs)</span></p>
+      <p><strong>关键客户列表:</strong> <span class="code-variable">苹果、三星、宁德时代、特斯拉</span> 等。</p>
+      <p><strong>双面性分析:</strong></p>
+      <ul>
+        <li><strong>护城河:</strong> 与顶级客户的深度绑定带来了稳定的订单、技术的前瞻性和强大的准入壁垒。</li>
+        <li><strong>脆弱性:</strong> 任何一个大客户的战略转向、需求波动或供应链调整，都会对公司业绩产生巨大冲击。</li>
+      </ul>
+      <p><strong>市场表现:</strong> 资本市场对特定客户（尤其是苹果）的项目传闻高度敏感，导致股价波动，这本身就反映了该风险的<span class="code-string">“外部可见性”</span>。</p>
+      <p class="code-comment">-- 如何在维持深度绑定的同时，实现客户组合的健康化，是一个长期存在的战略难题。 --</p>`
+  },
+  {
+    title: 'SEQ_14: RISK_MATRIX_INNOVATION',
+    content: () => `
+      <p><strong>// 正在扫描技术迭代风险...</strong></p>
+      <p><strong>风险源:</strong> <span class="text-red-500">技术迭代的速度 (Pace of Technological Change)</span></p>
+      <p><strong>生存法则:</strong> 任何一项颠覆性的新材料（如液态金属、下一代合金）或新工艺（如3D打印、冷喷涂），都可能对公司基于现有工艺的核心竞争力造成冲击。</p>
+      <p><strong>军备竞赛的量化:</strong></p>
+      <ul>
+        <li><strong>研发费用 (2023):</strong> <span class="code-variable">10.13 亿元</span></li>
+        <li><strong>研发费用 (2022):</strong> <span class="code-variable">12.16 亿元</span></li>
+      </ul>
+      <p><strong>内部视角:</strong> 每年超过10亿元的研发投入并非奢侈品，而是关乎<span class="code-string">“生存的必需品”</span>。</p>
+      <p class="code-comment">-- 公司必须永远比市场更快地创新，才能在技术浪潮的更迭中幸存下来并保持领先。 --</p>`
+  }
+];
+        
+        // =================================================================
+        // 📝 CONTENT STYLING GUIDE - 内容样式指南
+        // =================================================================
+        // 可用的CSS类名（在content函数中使用）：
+        // 文本颜色：.text-green-400, .text-yellow-400, .text-red-400, .text-blue-400
+        // 代码样式：.code-keyword, .code-string, .code-comment, .code-variable
+        // 其他样式：.font-bold, .animate-pulse
+        // HTML标签：<p>, <span>, <br>, 表情符号等
+        // 
+        // 模板内容建议：
+        // - 使用<p>标签分段
+        // - 用<span class="xxx">为重要信息添加颜色
+        // - 支持动态JavaScript变量：${Date.now()}, ${Math.random()}等
+        // - 可以包含表情符号、特殊字符增强视觉效果
+        // =================================================================
+
+        // =================================================================
+        // 🧮 CORE CALCULATION FUNCTIONS - 核心计算函数
+        // =================================================================
+        // 说明：这些函数负责3D布局计算和数学运算
+        // ❌ 不建议修改：这些是核心算法，修改可能破坏3D效果
+        // =================================================================
+        
+        function calculateOriginalPosition(i) {
+            const radius = Math.min(window.innerWidth, window.innerHeight) * radiusFactor;
+            
+            // 球状分布：保持美观的同时确保导航可预测性
+            const y = 1 - (i / (contentTemplates.length - 1)) * 2; // Y从1到-1的线性分布
+            const radiusAtY = Math.sqrt(1 - y * y); // 在该Y高度的圆半径
+            
+            // 混合方式：基础均匀分布 + 黄金角度偏移，保持球状美感
+            const baseAngleStep = (2 * Math.PI) / contentTemplates.length; // 基础均匀角度
+            const goldenOffset = Math.PI * (3 - Math.sqrt(5)) * 0.3; // 轻微的黄金角度偏移
+            const theta = i * baseAngleStep + i * goldenOffset;
+            
+            // 基础球面坐标
+            const baseX = Math.cos(theta) * radiusAtY * radius;
+            const baseZ = Math.sin(theta) * radiusAtY * radius;
+            
+            // Y轴应用纵深因子
+            const finalY = y * radius * ySpreadFactor;
+            
+            // Z轴添加前后层次变化
+            const zDepthOffset = Math.sin(i * 1.618) * radius * ySpreadFactor * 0.3;
+            const finalZ = baseZ + zDepthOffset;
+            
+            return { x: baseX, y: finalY, z: finalZ };
+        }
+
+        // 暂时注释掉径向菜单创建函数 - 2024年更新
+        /*
+        function createRadialMenu() {
+            // Function remains unchanged
+            const menuContainer = document.createElement('div');
+            menuContainer.className = 'radial-menu-container';
+            const arc = document.createElement('div');
+            arc.className = 'radial-menu-arc';
+            menuContainer.appendChild(arc);
+            const menuItems = [
+                { icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2', name: 'Analyze' },
+                { icon: 'M13 10V3L4 14h7v7l9-11h-7z', name: 'Teleport' },
+                { icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', name: 'Track' },
+                { icon: 'M6 18L18 6M6 6l12 12', name: 'Close' }
+            ];
+            const angleStep = 180 / (menuItems.length - 1);
+            const radius = 85;
+            menuItems.forEach((item, index) => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'radial-menu-item';
+                const angle = -90 + (angleStep * index);
+                const rad = angle * (Math.PI / 180);
+                const x = Math.cos(rad) * radius;
+                const y = Math.sin(rad) * radius;
+                menuItem.style.setProperty('--tx', `${x}px`);
+                menuItem.style.setProperty('--ty', `${y}px`);
+                menuItem.style.setProperty('--delay', `${0.15 + index * 0.06}s`);
+                menuItem.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}" /></svg>`;
+                menuItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const winState = windows.find(w => w.el.contains(e.target));
+                    console.log(`Clicked on: ${item.name} for window: ${winState ? winState.id : 'unknown'}`);
+                    if (item.name === 'Close' && winState) {
+                        closeWindow(winState);
+                    } else {
+                        hideRadialMenu();
+                    }
+                });
+                menuContainer.appendChild(menuItem);
+            });
+            return menuContainer;
+        }
+        */
+
+        // =================================================================
+        // 🏗️ UI CREATION FUNCTIONS - UI创建函数
+        // =================================================================
+        // 说明：这些函数负责创建和管理界面元素
+        // ❌ 大部分不建议修改：这些是界面结构逻辑
+        // 🔄 可小幅调整：窗口大小、样式类名等视觉属性
+        // =================================================================
+        
+        function createWindow(i) {
+            // Function remains unchanged
+            const template = contentTemplates[i % contentTemplates.length];
+            const win = document.createElement('div');
+            win.id = `window-${i}`;
+            win.className = 'fui-window';
+            let cardWidth = window.innerWidth * (Math.random() * 0.05 + 0.22);
+            let cardHeight = cardWidth * 0.8;
+            const originalPos = calculateOriginalPosition(i);
+            
+            win.innerHTML = `
+                <div class="fui-header">${template.title}</div>
+                <div class="marker-dots">
+                    <div class="marker-dot dot-pink" data-color="pink"></div>
+                    <div class="marker-dot dot-blue" data-color="blue"></div>
+                    <div class="marker-dot dot-yellow" data-color="yellow"></div>
+                </div>
+                <div class="fui-content">...</div>
+                <div class="resize-handle"></div>`;
+
+            // 暂时注释掉径向菜单创建 - 2024年更新
+            // const radialMenu = createRadialMenu();
+            // win.appendChild(radialMenu);
+            origin.appendChild(win);
+
+            const windowState = {
+                id: win.id, el: win, 
+                // radialMenu: radialMenu,  // 暂时注释掉径向菜单 - 2024年更新
+                width: cardWidth, height: cardHeight,
+                x: originalPos.x, y: originalPos.y, z: originalPos.z, scale: 1.0,
+                vx: 0, vy: 0, vz: 0,
+                targetX: originalPos.x, targetY: originalPos.y, targetZ: originalPos.z,
+                targetScale: 1.0,
+                originalX: originalPos.x, originalY: originalPos.y, originalZ: originalPos.z,
+                isFocusing: false,
+                highlightColor: null
+            };
+            windows.push(windowState);
+            updateContent(windowState);
+        }
+
+        function createNavGlobeDots() {
+            // 清空现有导航球点
+            navGlobeDots.forEach(dot => dot.el.remove());
+            navGlobeDots = [];
+
+            const navGlobe = document.getElementById('navGlobe');
+            const globeRadius = 40; // 导航球的半径（100px球体的50px半径）
+            
+            windows.forEach((win, index) => {
+                const dotEl = document.createElement('div');
+                dotEl.className = 'nav-card-dot';
+                
+                // 计算卡片在导航球上的位置（使用与主场景相同的布局逻辑）
+                const y = 1 - (index / (contentTemplates.length - 1)) * 2; // Y从1到-1
+                const radiusAtY = Math.sqrt(1 - y * y);
+                const baseAngleStep = (2 * Math.PI) / contentTemplates.length;
+                const goldenOffset = Math.PI * (3 - Math.sqrt(5)) * 0.3;
+                const theta = index * baseAngleStep + index * goldenOffset;
+                
+                const x = Math.cos(theta) * radiusAtY * globeRadius * 0.8; // 稍微缩小，让点在球体内部
+                const z = Math.sin(theta) * radiusAtY * globeRadius * 0.8;
+                const dotY = y * globeRadius * ySpreadFactor; // 与主场景的ySpreadFactor对应
+                
+                // 设置点的位置
+                dotEl.style.left = `${50 + x}px`; // 50px是球心偏移
+                dotEl.style.top = `${50 + dotY}px`;
+                dotEl.style.transform = `translateX(-50%) translateY(-50%) translateZ(${z}px)`;
+                dotEl.style.zIndex = Math.floor(z + 200); // Z-index基于z坐标，确保在球体层之上
+                
+                // 添加随机延迟的浮动动画
+                dotEl.style.animationDelay = `${index * 0.2}s`;
+                
+                // 添加点击事件来导航到对应卡片
+                dotEl.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`点击全息导航点 ${index}`);
+                    centerCardToEquator(index);
+                });
+                
+                // 添加悬停提示
+                dotEl.title = contentTemplates[index % contentTemplates.length].title;
+                
+                navGlobe.appendChild(dotEl);
+                navGlobeDots.push({ 
+                    el: dotEl, 
+                    index: index, 
+                    x: x, 
+                    y: dotY, 
+                    z: z 
+                });
+            });
+            
+            updateNavGlobeStates();
+        }
+
+        function updateNavGlobeStates() {
+            // 更新导航球点的状态
+            navGlobeDots.forEach((dot, index) => {
+                if (index === currentCenterIndex) {
+                    dot.el.classList.add('center-dot');
+                } else {
+                    dot.el.classList.remove('center-dot');
+                }
+            });
+        }
+
+        function updateNavGlobeRotation() {
+            const navGlobe = document.getElementById('navGlobe');
+            if (navGlobe) {
+                // 计算智能校准角度
+                const adjustedRotation = calculateSmartGlobeRotation();
+                navGlobe.style.transform = `translate(-50%, -50%) rotateX(${adjustedRotation.x}deg) rotateY(${adjustedRotation.y}deg)`;
+            }
+        }
+
+        // 用于存储平滑过渡的目标角度
+        let globeTargetRotation = { x: 0, y: 0 };
+        let globeCurrentRotation = { x: 0, y: 0 };
+        let globeTransitionSpeed = 0.12; // 控制过渡平滑度
+
+        function calculateSmartGlobeRotation() {
+            // 基础跟随主场景旋转
+            let targetX = sceneRotation.x;
+            let targetY = sceneRotation.y;
+            
+            // 智能校准：当球体接近侧面视角时进行微调
+            const normalizedY = ((targetY % 360) + 360) % 360;
+            
+            // 定义危险角度范围（接近侧面）
+            const sideViewAngles = [90, 270]; // 90度和270度是完全侧面
+            const correctionRange = 30; // 在±30度范围内开始校准
+            const maxCorrection = 25; // 最大校准角度
+            
+            let isCorrectingAngle = false;
+            
+            for (const sideAngle of sideViewAngles) {
+                const angleDiff = Math.min(
+                    Math.abs(normalizedY - sideAngle),
+                    Math.abs(normalizedY - sideAngle + 360),
+                    Math.abs(normalizedY - sideAngle - 360)
+                );
+                
+                if (angleDiff <= correctionRange) {
+                    isCorrectingAngle = true;
+                    
+                    // 使用平滑的校准函数
+                    const correctionStrength = Math.sin((1 - angleDiff / correctionRange) * Math.PI / 2);
+                    const correctionAmount = correctionStrength * maxCorrection;
+                    
+                    // 确定校准方向（避开侧面）
+                    let correctionDirection = 1;
+                    if (sideAngle === 90) {
+                        correctionDirection = normalizedY < 90 ? 1 : -1;
+                    } else if (sideAngle === 270) {
+                        correctionDirection = normalizedY < 270 ? 1 : -1;
+                    }
+                    
+                    // 应用Y轴校准
+                    targetY += correctionDirection * correctionAmount;
+                    
+                    // 添加动态X轴调整以增强立体感
+                    const dynamicXCorrection = Math.sin(Date.now() * 0.001) * correctionStrength * 8;
+                    const baseXCorrection = correctionStrength * 12;
+                    
+                    if (Math.abs(targetX) < 45) { // 在合理范围内调整X轴
+                        targetX += baseXCorrection + dynamicXCorrection;
+                    }
+                    
+                    // 调整过渡速度：校准时更快，正常时更慢
+                    globeTransitionSpeed = Math.min(0.25, 0.12 + correctionStrength * 0.13);
+                    
+                    break; // 只应用一次校准
+                }
+            }
+            
+            // 如果没有在校准，恢复正常过渡速度
+            if (!isCorrectingAngle) {
+                globeTransitionSpeed = Math.max(0.08, globeTransitionSpeed - 0.01);
+            }
+            
+            // 限制角度范围
+            targetX = Math.max(-80, Math.min(80, targetX));
+            
+            // 更新目标角度
+            globeTargetRotation.x = targetX;
+            globeTargetRotation.y = targetY;
+            
+            // 平滑过渡到目标角度
+            globeCurrentRotation.x += (globeTargetRotation.x - globeCurrentRotation.x) * globeTransitionSpeed;
+            globeCurrentRotation.y += (globeTargetRotation.y - globeCurrentRotation.y) * globeTransitionSpeed;
+            
+            return { 
+                x: globeCurrentRotation.x, 
+                y: globeCurrentRotation.y 
+            };
+        }
+
+        function createThumbnails() {
+            // 清空现有缩略图
+            thumbnails.forEach(t => t.el.remove());
+            thumbnails = [];
+
+            const thumbnailContainer = document.getElementById('thumbnailContainer');
+            
+            windows.forEach((win, index) => {
+                const thumbnailEl = document.createElement('div');
+                thumbnailEl.className = 'thumbnail-card';
+                
+                // 如果大纲面板是开启的，初始状态应该是隐藏的
+                if (isOutlinePanelOpen) {
+                    thumbnailEl.classList.add('slide-out');
+                }
+                
+                const template = contentTemplates[index % contentTemplates.length];
+                const shortContent = template.content().replace(/<[^>]*>/g, '').substring(0, 50) + '...';
+                
+                thumbnailEl.innerHTML = `
+                    <div class="thumbnail-header">${template.title}</div>
+                    <div class="thumbnail-content">${shortContent}</div>
+                `;
+                
+                thumbnailEl.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`点击了缩略图 ${index}`);
+                    centerCardToEquator(index);
+                });
+                
+                thumbnailContainer.appendChild(thumbnailEl);
+                thumbnails.push({ 
+                    el: thumbnailEl, 
+                    index: index, 
+                    windowState: win 
+                });
+            });
+            
+            updateThumbnailStates();
+        }
+        
+        function closeWindow(winState) {
+            if (!winState) return;
+            winState.el.style.opacity = '0';
+            winState.el.style.pointerEvents = 'none';
+            setTimeout(() => {
+                winState.el.remove();
+                windows = windows.filter(w => w.id !== winState.id);
+                
+                if (focusedWindow && focusedWindow.id === winState.id) focusedWindow = null;
+                // 暂时注释掉径向菜单窗口清理 - 2024年更新
+                // if (activeMenuWindow && activeMenuWindow.id === winState.id) activeMenuWindow = null;
+                
+                createThumbnails();
+            }, 500);
+        }
+
+        function rotateToCard(targetIndex) {
+            console.log(`尝试旋转到卡片 ${targetIndex}, 当前中心: ${currentCenterIndex}`);
+            
+            if (targetIndex < 0 || targetIndex >= windows.length) {
+                console.log('无效的目标索引');
+                return;
+            }
+            
+            // 立即更新中心索引
+            currentCenterIndex = targetIndex;
+            
+            // 设置旋转状态
+            isRotating = true;
+            rotationTargetIndex = targetIndex;
+            rotationStartTime = Date.now();
+            updateNavigationState();
+            
+            // 使用与布局相同的角度计算，确保准确居中
+            const baseAngleStep = (2 * Math.PI) / contentTemplates.length;
+            const goldenOffset = Math.PI * (3 - Math.sqrt(5)) * 0.3;
+            const targetTheta = targetIndex * baseAngleStep + targetIndex * goldenOffset;
+            
+            // 计算目标卡片的Y位置
+            const targetY = 1 - (targetIndex / (contentTemplates.length - 1)) * 2;
+            
+            // 计算目标旋转角度
+            const targetYRotation = -targetTheta * (180 / Math.PI);
+            const targetXRotation = -Math.asin(targetY) * (180 / Math.PI) * 1.0; // 增加X轴旋转幅度
+            
+            console.log(`目标卡片 ${targetIndex}: Y=${targetY.toFixed(3)}, targetTheta=${(targetTheta * 180/Math.PI).toFixed(1)}°`);
+            console.log(`计算旋转: Y轴${targetYRotation.toFixed(1)}°, X轴${targetXRotation.toFixed(1)}°`);
+            
+            // 计算最短路径的角度差
+            let yAngleDiff = targetYRotation - sceneRotation.y;
+            let xAngleDiff = targetXRotation - sceneRotation.x;
+            
+            console.log(`当前场景: Y=${sceneRotation.y.toFixed(1)}°, X=${sceneRotation.x.toFixed(1)}°`);
+            console.log(`角度差: ΔY=${yAngleDiff.toFixed(1)}°, ΔX=${xAngleDiff.toFixed(1)}°`);
+            
+            // 选择最短路径旋转（处理角度跨越360度的情况）
+            while (yAngleDiff > 180) yAngleDiff -= 360;
+            while (yAngleDiff < -180) yAngleDiff += 360;
+            
+            // 应用旋转
+            sceneRotation.y += yAngleDiff;
+            sceneRotation.x += xAngleDiff;
+            
+            // 添加旋转动画效果
+            sceneVelocity.y = yAngleDiff * 0.3;
+            sceneVelocity.x = xAngleDiff * 0.3;
+            
+            // 立即更新缩略图状态
+            updateThumbnailStates();
+            
+            console.log(`旋转到卡片 ${targetIndex}: 角度 ${targetTheta.toFixed(2)}, Y旋转 ${targetYRotation.toFixed(1)}°`);
+            console.log(`旋转后场景: Y=${sceneRotation.y.toFixed(1)}°, X=${sceneRotation.x.toFixed(1)}°`);
+            
+            // 完成检测
+            setTimeout(() => {
+                if (isRotating && rotationTargetIndex === targetIndex) {
+                    isRotating = false;
+                    rotationTargetIndex = -1;
+                    updateNavigationState();
+                    console.log(`旋转完成到卡片 ${targetIndex}`);
+                }
+            }, 1200);
+        }
+
+        function navigatePrevious() {
+            console.log('导航：上一张卡片');
+            const prevIndex = (currentCenterIndex - 1 + windows.length) % windows.length;
+            console.log(`从 ${currentCenterIndex} 导航到上一张 ${prevIndex}`);
+            centerCardToEquator(prevIndex);
+        }
+
+        function navigateNext() {
+            console.log('导航：下一张卡片');
+            const nextIndex = (currentCenterIndex + 1) % windows.length;
+            console.log(`从 ${currentCenterIndex} 导航到下一张 ${nextIndex}`);
+            centerCardToEquator(nextIndex);
+        }
+
+        // 快速旋转版本，专为键盘和箭头导航优化
+        function rotateToCardFast(targetIndex) {
+            console.log(`快速旋转到卡片 ${targetIndex}, 当前中心: ${currentCenterIndex}`);
+            
+            if (targetIndex < 0 || targetIndex >= windows.length) {
+                console.log('无效的目标索引');
+                return;
+            }
+            
+            // 立即更新中心索引
+            currentCenterIndex = targetIndex;
+            
+            // 强制重置旋转状态
+            isRotating = false;
+            rotationTargetIndex = -1;
+            
+            // 设置新的旋转状态
+            isRotating = true;
+            rotationTargetIndex = targetIndex;
+            rotationStartTime = Date.now();
+            updateNavigationState();
+            
+            // 使用与布局相同的角度计算，确保准确居中
+            const baseAngleStep = (2 * Math.PI) / contentTemplates.length;
+            const goldenOffset = Math.PI * (3 - Math.sqrt(5)) * 0.3;
+            const targetTheta = targetIndex * baseAngleStep + targetIndex * goldenOffset;
+            
+            // 计算目标卡片的Y位置
+            const targetY = 1 - (targetIndex / (contentTemplates.length - 1)) * 2;
+            
+            // 计算目标旋转角度
+            const targetYRotation = -targetTheta * (180 / Math.PI);
+            const targetXRotation = -Math.asin(targetY) * (180 / Math.PI) * 1.0; // 增加X轴旋转幅度
+            
+
+            
+            // 计算最短路径的角度差
+            let yAngleDiff = targetYRotation - sceneRotation.y;
+            let xAngleDiff = targetXRotation - sceneRotation.x;
+            
+            // 选择最短路径旋转
+            while (yAngleDiff > 180) yAngleDiff -= 360;
+            while (yAngleDiff < -180) yAngleDiff += 360;
+            
+            // 应用旋转（更快的动画速度）
+            sceneRotation.y += yAngleDiff;
+            sceneRotation.x += xAngleDiff;
+            sceneVelocity.y = yAngleDiff * 0.5; // 比普通旋转更快
+            sceneVelocity.x = xAngleDiff * 0.5;
+            
+            // 立即更新缩略图状态
+            updateThumbnailStates();
+            
+            console.log(`快速旋转到卡片 ${targetIndex}: 角度 ${targetTheta.toFixed(2)}, Y旋转 ${targetYRotation.toFixed(1)}°`);
+            
+            // 更短的完成检测时间
+            setTimeout(() => {
+                if (isRotating && rotationTargetIndex === targetIndex) {
+                    isRotating = false;
+                    rotationTargetIndex = -1;
+                    updateNavigationState();
+                    console.log(`快速旋转完成到卡片 ${targetIndex}`);
+                }
+            }, 600); // 减少到600ms
+        }
+
+        function updateNavigationState() {
+            const prevArrow = document.getElementById('prevArrow');
+            const nextArrow = document.getElementById('nextArrow');
+            
+            if (isRotating) {
+                prevArrow.classList.add('rotating');
+                nextArrow.classList.add('rotating');
+            } else {
+                prevArrow.classList.remove('rotating');
+                nextArrow.classList.remove('rotating');
+            }
+        }
+
+        function checkRotationComplete() {
+            if (!isRotating || rotationTargetIndex === -1) return;
+            
+            // 检查场景旋转速度是否足够小（接近静止）
+            const velocityThreshold = 0.5;
+            const isNearlyStill = Math.abs(sceneVelocity.y) < velocityThreshold;
+            
+            // 检查是否已经接近目标位置
+            const isAtTarget = currentCenterIndex === rotationTargetIndex;
+            
+            if (isNearlyStill && isAtTarget) {
+                // 旋转完成
+                isRotating = false;
+                rotationTargetIndex = -1;
+                updateNavigationState();
+                updateThumbnailStates();
+                console.log(`旋转完成，当前中心卡片: ${currentCenterIndex}`);
+            }
+            
+            // 增加超时机制，防止卡住
+            if (isRotating && Date.now() - rotationStartTime > 3000) {
+                console.log('旋转超时，强制完成');
+                if (rotationTargetIndex !== -1) {
+                    currentCenterIndex = rotationTargetIndex; // 更新到目标索引
+                }
+                isRotating = false;
+                rotationTargetIndex = -1;
+                updateNavigationState();
+                updateThumbnailStates();
+            }
+        }
+
+        function updateThumbnailStates() {
+            // 更新缩略图状态
+            thumbnails.forEach((thumbnail, index) => {
+                if (index === currentCenterIndex) {
+                    thumbnail.el.classList.add('active');
+                } else {
+                    thumbnail.el.classList.remove('active');
+                }
+            });
+            
+            // 更新主界面卡片的中心高亮效果
+            windows.forEach((win, index) => {
+                if (index === currentCenterIndex) {
+                    win.el.classList.add('center-highlight');
+                } else {
+                    win.el.classList.remove('center-highlight');
+                }
+            });
+            
+            // 同步更新导航球状态
+            updateNavGlobeStates();
+        }
+
+        function findCenterCard() {
+            // 基于十字准星位置（屏幕中心）进行卡片中心检测
+            let closestIndex = 0;
+            let minDistance = Infinity;
+            
+            windows.forEach((win, index) => {
+                // 获取卡片经过场景旋转后的实际3D坐标
+                const originalPos = calculateOriginalPosition(index);
+                const rotatedPos = rotatePoint(originalPos, sceneRotation);
+                
+                // 计算卡片在屏幕投影与十字准星的距离
+                // 十字准星位于屏幕中心 (0, 0)，这里我们主要关注X和Y的距离
+                const distance = Math.sqrt(rotatedPos.x * rotatedPos.x + rotatedPos.y * rotatedPos.y);
+                
+                // 添加Z轴权重，越靠近观察者的卡片优先级越高
+                const weightedDistance = distance - (rotatedPos.z * 0.001);
+                
+                if (weightedDistance < minDistance) {
+                    minDistance = weightedDistance;
+                    closestIndex = index;
+                }
+            });
+            
+            if (closestIndex !== currentCenterIndex) {
+                currentCenterIndex = closestIndex;
+                updateThumbnailStates();
+                
+                // 添加调试信息
+                console.log(`Center card changed to index: ${closestIndex}, title: ${contentTemplates[closestIndex].title}`);
+                console.log(`Distance to crosshair: ${minDistance.toFixed(3)}`);
+            }
+        }
+
+        // 新增：球体赤道视角居中函数
+        function centerCardToEquator(targetIndex) {
+            console.log(`将卡片 ${targetIndex} 居中并调整到赤道视角`);
+            
+            if (targetIndex < 0 || targetIndex >= windows.length) {
+                console.log('无效的目标索引');
+                return;
+            }
+            
+            // 计算需要的Y轴旋转角度，使该卡片位于屏幕中心
+            const baseAngleStep = (2 * Math.PI) / contentTemplates.length;
+            const goldenOffset = Math.PI * (3 - Math.sqrt(5)) * 0.3;
+            const targetTheta = targetIndex * baseAngleStep + targetIndex * goldenOffset;
+            
+            // 目标Y轴旋转角度
+            const targetYRotation = (targetTheta * (180 / Math.PI)) + 90;
+            
+            // 目标X轴旋转角度设为0，保持赤道视角
+            const targetXRotation = 0;
+            
+            // 计算角度差
+            const yDiff = targetYRotation - sceneRotation.y;
+            const xDiff = targetXRotation - sceneRotation.x;
+            
+            // 处理Y轴角度跨越问题
+            let normalizedYDiff = yDiff;
+            while (normalizedYDiff > 180) normalizedYDiff -= 360;
+            while (normalizedYDiff < -180) normalizedYDiff += 360;
+            
+            // 应用旋转
+            sceneRotation.y += normalizedYDiff;
+            sceneRotation.x = targetXRotation; // 直接将X轴旋转设置为目标值 (0)
+            
+            // 设置平滑动画
+            sceneVelocity.y = normalizedYDiff * 0.3;
+            sceneVelocity.x = 0; // 将X轴速度设置为0，防止后续晃动
+            
+            // 更新当前中心索引
+            currentCenterIndex = targetIndex;
+            updateThumbnailStates();
+            
+            console.log(`卡片 ${targetIndex} 已居中到赤道视角，Y轴旋转: ${targetYRotation.toFixed(1)}°，X轴重置为0°`);
+        }
+
+        let isOutlinePanelOpen = false; // 新增状态变量
+
+        function toggleOutlinePanel() {
+            const thumbnailContainer = document.getElementById('thumbnailContainer');
+            const prevArrow = document.getElementById('prevArrow');
+            const nextArrow = document.getElementById('nextArrow');
+            const outlinePanel = document.getElementById('outlinePanel');
+            const outlineToggle = document.getElementById('outlineToggle');
+
+            if (isOutlinePanelOpen) {
+                // 关闭大纲面板
+                outlinePanel.classList.remove('active');
+                
+                // 延迟显示缩略图，让大纲面板先收缩
+                setTimeout(() => {
+                    showThumbnailsWithAnimation();
+                    prevArrow.style.opacity = '1';
+                    prevArrow.style.pointerEvents = 'auto';
+                    nextArrow.style.opacity = '1';
+                    nextArrow.style.pointerEvents = 'auto';
+                    thumbnailContainer.style.pointerEvents = 'auto';
+                }, 200);
+
+            } else {
+                // 隐藏缩略图
+                hideThumbnailsWithAnimation();
+                
+                // 延迟显示大纲面板
+                setTimeout(() => {
+                    populateOutline();
+                    const toggleRect = outlineToggle.getBoundingClientRect();
+                    outlinePanel.style.left = `${toggleRect.left}px`;
+                    outlinePanel.style.bottom = `${window.innerHeight - toggleRect.top}px`;
+                    outlinePanel.classList.add('active');
+                }, 300);
+                
+                prevArrow.style.opacity = '0';
+                prevArrow.style.pointerEvents = 'none';
+                nextArrow.style.opacity = '0';
+                nextArrow.style.pointerEvents = 'none';
+                thumbnailContainer.style.pointerEvents = 'none';
+            }
+            isOutlinePanelOpen = !isOutlinePanelOpen;
+        }
+
+        function hideThumbnailsWithAnimation() {
+            const thumbnailCards = document.querySelectorAll('.thumbnail-card');
+            thumbnailCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.add('slide-out');
+                }, index * 50); // 每个卡片延迟50ms
+            });
+        }
+
+        function showThumbnailsWithAnimation() {
+            const thumbnailCards = document.querySelectorAll('.thumbnail-card');
+            
+            // 首先移除所有动画类并重置状态
+            thumbnailCards.forEach(card => {
+                card.classList.remove('slide-out', 'slide-in');
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(-60px) scale(0.8)';
+            });
+            
+            // 逐个显示缩略图
+            thumbnailCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.add('slide-in');
+                    card.style.opacity = '';
+                    card.style.transform = '';
+                }, index * 80); // 每个卡片延迟80ms，更慢更优雅
+            });
+            
+            // 清理动画类
+            setTimeout(() => {
+                thumbnailCards.forEach(card => {
+                    card.classList.remove('slide-in');
+                });
+            }, thumbnailCards.length * 80 + 500);
+        }
+
+        function populateOutline() {
+            const outlineList = document.getElementById('outlineList');
+            outlineList.innerHTML = ''; // 清空现有列表
+
+            contentTemplates.forEach((template, index) => {
+                const listItem = document.createElement('li');
+                listItem.className = 'outline-list-item';
+                listItem.textContent = template.title;
+                listItem.dataset.index = index; // 存储卡片索引
+
+                listItem.addEventListener('click', () => {
+                    centerCardToEquator(index); // 导航到对应卡片
+                    toggleOutlinePanel(); // 关闭大纲面板
+                });
+                outlineList.appendChild(listItem);
+            });
+        }
+
+        function recalculateLayout() {
+            // Function remains unchanged
+            windows.forEach((win, i) => {
+                const newPos = calculateOriginalPosition(i);
+                win.originalX = newPos.x;
+                win.originalY = newPos.y;
+                win.originalZ = newPos.z;
+            });
+        }
+        
+        // 暂时注释掉径向菜单显示隐藏函数 - 2024年更新
+        /*
+        function showRadialMenu(winState, event) { if (!winState || !winState.radialMenu) return; const rect = winState.el.getBoundingClientRect(); const x = event.clientX - rect.left; const y = event.clientY - rect.top; const menu = winState.radialMenu; menu.style.left = `${x}px`; menu.style.top = `${y}px`; menu.style.transform = `translate(-50%, -50%)`; menu.classList.add('active'); activeMenuWindow = winState; }
+        function hideRadialMenu() { if (!activeMenuWindow || !activeMenuWindow.radialMenu) return; activeMenuWindow.radialMenu.classList.remove('active'); activeMenuWindow = null; }
+        */
+        function onMarkerClick(e) { if (!e.target.classList.contains('marker-dot')) return; e.stopPropagation(); const marker = e.target; const color = marker.dataset.color; const windowEl = marker.closest('.fui-window'); const winState = windows.find(w => w.el === windowEl); if (!color || !winState) return; const highlightClass = `highlight-${color}`; const isAlreadyHighlighted = windowEl.classList.contains(highlightClass); windowEl.classList.remove('highlight-pink', 'highlight-blue', 'highlight-yellow'); winState.highlightColor = null; if (!isAlreadyHighlighted) { windowEl.classList.add(highlightClass); winState.highlightColor = color; } }
+        // =================================================================
+        // 🎮 EVENT HANDLERS - 事件处理函数
+        // =================================================================
+        // 说明：这些函数处理用户交互事件（鼠标、键盘、触摸等）
+        // ❌ 不建议修改：这些是交互逻辑的核心，修改可能影响用户体验
+        // =================================================================
+        
+        function onMouseDown(e) { 
+            if (e.target.closest('.controls-panel') || 
+                // e.target.closest('.radial-menu-item') ||   // 暂时注释掉径向菜单检测 - 2024年更新
+                e.target.classList.contains('marker-dot')) return; 
+            
+            // 暂时注释掉径向菜单隐藏逻辑 - 2024年更新
+            // if(activeMenuWindow){ hideRadialMenu(); return; } 
+            
+            const targetWindowEl = e.target.closest('.fui-window'); 
+            lastMouse.x = e.clientX; 
+            lastMouse.y = e.clientY; 
+            startDragPos = { x: e.clientX, y: e.clientY }; 
+            
+            if (e.target.classList.contains('resize-handle') && targetWindowEl) { 
+                isResizing = true; 
+                resizingWindow = windows.find(w => w.id === targetWindowEl.id); 
+                document.body.style.cursor = 'se-resize'; 
+            } else if (targetWindowEl) { 
+                // 暂时注释掉长按检测和径向菜单逻辑，改为直接启动场景旋转 - 2024年更新
+                // 允许在卡片上也能拖拽旋转界面
+                isRotatingScene = true; 
+                document.body.style.cursor = 'grabbing'; 
+                sceneVelocity.x = sceneVelocity.y = 0; 
+            } else { 
+                isRotatingScene = true; 
+                document.body.style.cursor = 'grabbing'; 
+                sceneVelocity.x = sceneVelocity.y = 0; 
+            } 
+        }
+        function onMouseMove(e) { 
+            const dx = e.clientX - lastMouse.x; 
+            const dy = e.clientY - lastMouse.y; 
+            const moveDist = Math.hypot(e.clientX - startDragPos.x, e.clientY - startDragPos.y); 
+            
+            // 暂时注释掉长按检测逻辑 - 2024年更新
+            // if (longPressTimer && moveDist > 5) { 
+            //     clearTimeout(longPressTimer); 
+            //     longPressTimer = null; 
+            //     isRotatingScene = true; 
+            //     document.body.style.cursor = 'grabbing'; 
+            // } 
+            
+            if (isResizing && resizingWindow) { 
+                resizingWindow.width += dx; 
+                resizingWindow.height += dy; 
+            } else if (isRotatingScene) { 
+                sceneRotation.y += dx * rotationFactor; 
+                sceneRotation.x -= dy * rotationFactor; 
+                sceneVelocity.y = dx * rotationFactor; 
+                sceneVelocity.x = -dy * rotationFactor; 
+            } 
+            lastMouse.x = e.clientX; 
+            lastMouse.y = e.clientY; 
+        }
+        function onMouseUp(e) { 
+            // 暂时注释掉长按检测清除逻辑 - 2024年更新
+            // clearTimeout(longPressTimer); 
+            // longPressTimer = null;
+            
+            if (isRotatingScene || isResizing) { 
+                isRotatingScene = false; 
+                isResizing = false; 
+                resizingWindow = null; 
+                document.body.style.cursor = 'grab'; 
+                console.log('鼠标松开，重置旋转状态');
+            } 
+        }
+        // 键盘导航防抖
+        let lastKeyPressTime = 0;
+        const keyPressThreshold = 200; // 毫秒
+
+        function onKeyDown(e) { 
+            const rotationVelocityStep = 2; 
+            const currentTime = Date.now();
+            
+            // 如果有聚焦的窗口，方向键控制其内容滚动
+            if (focusedWindow) {
+                const contentEl = focusedWindow.el.querySelector('.fui-content');
+                if (contentEl && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                    const scrollAmount = e.key === 'ArrowUp' ? -50 : 50;
+                    contentEl.scrollTop += scrollAmount;
+                    return;
+                }
+            }
+            
+            // 卡片导航控制（优化响应性）
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                console.log('键盘：左箭头键按下');
+                
+                // 防抖处理，但允许更频繁的操作
+                if (currentTime - lastKeyPressTime > keyPressThreshold) {
+                    lastKeyPressTime = currentTime;
+                    // 如果正在旋转，强制完成当前旋转
+                    if (isRotating) {
+                        isRotating = false;
+                        rotationTargetIndex = -1;
+                        updateNavigationState();
+                        console.log('强制完成当前旋转，立即响应键盘');
+                    }
+                    navigatePrevious();
+                } else {
+                    console.log('键盘操作过快，跳过');
+                }
+                return;
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                console.log('键盘：右箭头键按下');
+                
+                // 防抖处理，但允许更频繁的操作
+                if (currentTime - lastKeyPressTime > keyPressThreshold) {
+                    lastKeyPressTime = currentTime;
+                    // 如果正在旋转，强制完成当前旋转
+                    if (isRotating) {
+                        isRotating = false;
+                        rotationTargetIndex = -1;
+                        updateNavigationState();
+                        console.log('强制完成当前旋转，立即响应键盘');
+                    }
+                    navigateNext();
+                } else {
+                    console.log('键盘操作过快，跳过');
+                }
+                return;
+            }
+            
+            // 场景旋转控制（仅上下键）
+            if (e.key === 'ArrowUp') sceneVelocity.x += rotationVelocityStep; 
+            else if (e.key === 'ArrowDown') sceneVelocity.x -= rotationVelocityStep; 
+        }
+        function onDoubleClick(e) { 
+            if (e.target.closest('.controls-panel') || 
+                // e.target.closest('.radial-menu-item') ||   // 暂时注释掉径向菜单检测 - 2024年更新
+                e.target.classList.contains('marker-dot')) return; 
+            
+            // 暂时注释掉径向菜单检查 - 2024年更新
+            // if (activeMenuWindow) return; 
+            
+            // 确保双击时清理所有状态
+            e.preventDefault();
+            e.stopPropagation();
+            // 暂时注释掉长按检测清除 - 2024年更新
+            // clearTimeout(longPressTimer);
+            // longPressTimer = null;
+            isRotatingScene = false;
+            isResizing = false;
+            document.body.style.cursor = 'grab';
+            
+            const clickedWindowEl = e.target.closest('.fui-window'); 
+            if (clickedWindowEl && !e.target.classList.contains('resize-handle')) { 
+                toggleFocus(windows.find(w => w.id === clickedWindowEl.id)); 
+            } else if (!clickedWindowEl && focusedWindow) { 
+                toggleFocus(focusedWindow); 
+            } 
+        }
+        function toggleFocus(win) { 
+            if (!win) return; 
+            
+            // 重置所有鼠标和旋转状态
+            sceneVelocity.x = sceneVelocity.y = 0; 
+            isRotatingScene = false;
+            isResizing = false;
+            resizingWindow = null;
+            document.body.style.cursor = 'grab';
+            
+            const isAlreadyFocused = focusedWindow === win; 
+            
+            if (focusedWindow) { 
+                const winToUnfocus = focusedWindow; 
+                winToUnfocus.el.classList.remove('focused'); 
+                winToUnfocus.targetScale = 1.0; 
+                winToUnfocus.isFocusing = true; 
+            } 
+            
+            if (!isAlreadyFocused) { 
+                focusedWindow = win; 
+                win.el.classList.add('focused'); 
+                win.targetScale = 1.3; 
+                win.targetX = 0; 
+                win.targetY = 0; 
+                win.targetZ = 1000; 
+                win.isFocusing = true; 
+            } else { 
+                focusedWindow = null; 
+            }
+            
+            console.log(`切换聚焦状态: ${isAlreadyFocused ? '取消聚焦' : '聚焦'}, isRotatingScene: ${isRotatingScene}`);
+        }
+        function onWheel(e) { 
+            e.preventDefault(); 
+            
+            // 如果大纲面板打开，滚动大纲内容
+            if (isOutlinePanelOpen) {
+                const outlineList = document.getElementById('outlineList');
+                if (outlineList) {
+                    outlineList.scrollTop += e.deltaY * 0.5;
+                    return; // 阻止场景旋转
+                }
+            }
+
+            // 如果有聚焦的窗口，优先控制其内容滚动
+            if (focusedWindow) {
+                const contentEl = focusedWindow.el.querySelector('.fui-content');
+                if (contentEl) {
+                    // 控制聚焦窗口的内容滚动
+                    const scrollAmount = e.deltaY * 0.5;
+                    contentEl.scrollTop += scrollAmount;
+                    return; // 不执行场景旋转
+                }
+            }
+            
+            // 交换滚轮控制：上下滚轮控制左右旋转，左右滚轮控制上下旋转
+            const wheelRotationFactor = 0.2; 
+            sceneVelocity.y += e.deltaY * wheelRotationFactor;  // 上下滚轮控制左右旋转
+            sceneVelocity.x -= e.deltaX * wheelRotationFactor;  // 左右滚轮控制上下旋转
+        }
+        
+        // Other functions (updateWindowTransform, rotatePoint) remain unchanged
+        function updateWindowTransform(winState) { const { el, x, y, z, scale, width, height } = winState; el.style.width = `${width}px`; el.style.height = `${height}px`; const contentEl = el.querySelector('.fui-content'); if (contentEl) contentEl.style.maxHeight = `${height - 60}px`; el.style.transform = `translateX(${-width/2}px) translateY(${-height/2}px) translate3d(${x}px, ${y}px, ${z}px) scale(${scale})`;}
+        function rotatePoint(point, rotation) { const radX = rotation.x * (Math.PI / 180), radY = rotation.y * (Math.PI / 180); const sinX = Math.sin(radX), cosX = Math.cos(radX); const sinY = Math.sin(radY), cosY = Math.cos(radY); const { x, y, z } = point; const x1 = x * cosY + z * sinY; const z1 = -x * sinY + z * cosY; const y2 = y * cosX - z1 * sinX; const z2 = y * sinX + z1 * cosX; return { x: x1, y: y2, z: z2 };}
+
+
+
+        // =================================================================
+        // 🎬 ANIMATION & RENDER LOOP - 动画和渲染循环
+        // =================================================================
+        // 说明：这些函数负责动画更新和渲染逻辑
+        // ❌ 不建议修改：这是性能关键的渲染逻辑
+        // =================================================================
+        
+        function animationLoop() {
+            // 暂时注释掉径向菜单和长按检测状态 - 2024年更新
+            if (!isRotatingScene /* && !longPressTimer && !activeMenuWindow */) {
+                sceneRotation.x += sceneVelocity.x;
+                sceneRotation.y += sceneVelocity.y;
+                sceneVelocity.x *= damping;
+                sceneVelocity.y *= damping;
+            }
+            sceneRotation.x = Math.max(-85, Math.min(85, sceneRotation.x));
+            sceneScale += (targetScale - sceneScale) * 0.1;
+            origin.style.transform = `scale(${sceneScale})`;
+            
+            // 更新导航球的旋转
+            updateNavGlobeRotation();
+            
+            windows.forEach(win => {
+                const isUrgent = win.isFocusing;
+                const currentSpringFactor = isUrgent ? focusSpringFactor : springFactor;
+                const currentSpringDamping = isUrgent ? focusSpringDamping : springDamping;
+                const currentScaleSpeed = isUrgent ? focusScaleSpeed : 0.1;
+
+                if (win !== focusedWindow) {
+                    const rotatedPos = rotatePoint({x: win.originalX, y: win.originalY, z: win.originalZ}, sceneRotation);
+                    win.targetX = rotatedPos.x;
+                    win.targetY = rotatedPos.y;
+                    win.targetZ = focusedWindow ? rotatedPos.z - 2000 : rotatedPos.z;
+                }
+                
+                if (isUrgent) {
+                    const distSq = Math.hypot(win.targetX - win.x, win.targetY - win.y, win.targetZ - win.z);
+                    if (distSq < 1) {
+                        win.isFocusing = false;
+                        win.x = win.targetX; win.y = win.targetY; win.z = win.targetZ;
+                        win.scale = win.targetScale;
+                        win.vx = win.vy = win.vz = 0;
+                    }
+                }
+
+                win.vx = (win.vx + (win.targetX - win.x) * currentSpringFactor) * currentSpringDamping;
+                win.vy = (win.vy + (win.targetY - win.y) * currentSpringFactor) * currentSpringDamping;
+                win.vz = (win.vz + (win.targetZ - win.z) * currentSpringFactor) * currentSpringDamping;
+                win.scale += (win.targetScale - win.scale) * currentScaleSpeed;
+
+                win.x += win.vx; win.y += win.vy; win.z += win.vz;
+                updateWindowTransform(win);
+            });
+
+            // 检查旋转是否完成
+            checkRotationComplete();
+            
+            // 注意：不使用自动中心检测，改为手动设置避免冲突
+
+            requestAnimationFrame(animationLoop);
+        }
+
+        // =================================================================
+        // 🔄 CONTENT UPDATE FUNCTION - 内容更新函数
+        // =================================================================
+        // 说明：这个函数负责更新卡片内容
+        // ❌ 不建议修改函数逻辑：这是内容渲染的核心
+        // 📝 内容来源：从 contentTemplates 数组获取内容
+        // =================================================================
+        
+        function updateContent(winState) {
+            const index = windows.findIndex(w => w.id === winState.id);
+            if(index === -1) return;
+
+            const template = contentTemplates[index % contentTemplates.length];
+            const contentEl = winState.el.querySelector('.fui-content');
+            if (template && contentEl) contentEl.innerHTML = template.content();
+        }
+
+        // =================================================================
+        // 🎨 JARVIS 右下角效果系统
+        // =================================================================
+        
+        // 粒子背景网络系统
+        function initParticleBackground() {
+            const canvas = document.getElementById('particleCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 设置canvas尺寸
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            const particles = [];
+            const particleCount = 100;
+            const maxDistance = 150;
+            let mouse = { x: null, y: null };
+            
+            // 粒子类
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2 + 1;
+                    this.speedX = (Math.random() - 0.5) * 0.5;
+                    this.speedY = (Math.random() - 0.5) * 0.5;
+                    this.opacity = Math.random() * 0.5 + 0.3;
+                }
+                
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    
+                    // 边界检测
+                    if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+                    
+                    // 鼠标交互
+                    if (mouse.x !== null && mouse.y !== null) {
+                        const dx = mouse.x - this.x;
+                        const dy = mouse.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < 100) {
+                            const force = (100 - distance) / 100;
+                            this.x -= dx * force * 0.03;
+                            this.y -= dy * force * 0.03;
+                        }
+                    }
+                }
+                
+                draw() {
+                    ctx.save();
+                    ctx.globalAlpha = this.opacity;
+                    ctx.fillStyle = '#87CEEB';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+            
+            // 创建粒子
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+            
+            // 绘制连接线
+            function drawConnections() {
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < maxDistance) {
+                            const opacity = (1 - distance / maxDistance) * 0.3;
+                            ctx.save();
+                            ctx.globalAlpha = opacity;
+                            ctx.strokeStyle = '#87CEEB';
+                            ctx.lineWidth = 0.5;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    }
+                }
+            }
+            
+            // 动画循环
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 更新和绘制粒子
+                particles.forEach(particle => {
+                    particle.update();
+                    particle.draw();
+                });
+                
+                // 绘制连接线
+                drawConnections();
+                
+                requestAnimationFrame(animate);
+            }
+            
+            // 鼠标事件处理
+            canvas.addEventListener('mousemove', (e) => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            });
+            
+            canvas.addEventListener('mouseleave', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
+            
+            // 启动动画
+            animate();
+        }
+
+        // 3D光球动画系统
+        function init3DSpheres() {
+            const canvas = document.getElementById('cornerSphereCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const spheres = [];
+            const sphereCount = 6;
+            
+            // 创建球体
+            for (let i = 0; i < sphereCount; i++) {
+                spheres.push({
+                    x: canvas.width / 2 + (Math.random() - 0.5) * 100,
+                    y: canvas.height / 2 + (Math.random() - 0.5) * 60,
+                    baseRadius: Math.random() * 15 + 10,
+                    currentRadius: Math.random() * 15 + 10,
+                    targetRadius: Math.random() * 15 + 10,
+                    opacity: Math.random() * 0.6 + 0.2,
+                    targetOpacity: Math.random() * 0.6 + 0.2,
+                    color: Math.random() > 0.5 ? '#87CEEB' : '#FFD700',
+                    phase: Math.random() * Math.PI * 2,
+                    morphSpeed: Math.random() * 0.02 + 0.01,
+                    pulsePhase: Math.random() * Math.PI * 2,
+                    driftX: (Math.random() - 0.5) * 0.5,
+                    driftY: (Math.random() - 0.5) * 0.3,
+                    rotationSpeed: (Math.random() - 0.5) * 0.02
+                });
+            }
+            
+            function animateSpheres() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                spheres.forEach(sphere => {
+                    // 更新形变
+                    sphere.phase += sphere.morphSpeed;
+                    sphere.pulsePhase += 0.03;
+                    
+                    // 计算当前半径（有机变形）
+                    const morphFactor = Math.sin(sphere.phase) * 0.3 + Math.cos(sphere.phase * 1.7) * 0.2;
+                    sphere.currentRadius = sphere.baseRadius * (1 + morphFactor);
+                    
+                    // 透明度变化（缓慢淡入淡出）
+                    const pulseFactor = Math.sin(sphere.pulsePhase) * 0.3;
+                    sphere.opacity = 0.4 + pulseFactor * 0.3;
+                    
+                    // 位置漂移
+                    sphere.x += sphere.driftX;
+                    sphere.y += sphere.driftY;
+                    
+                    // 边界反弹
+                    if (sphere.x < 20 || sphere.x > canvas.width - 20) sphere.driftX *= -1;
+                    if (sphere.y < 15 || sphere.y > canvas.height - 15) sphere.driftY *= -1;
+                    
+                    // 绘制球体（椭圆形状）
+                    ctx.save();
+                    ctx.translate(sphere.x, sphere.y);
+                    ctx.scale(1, 0.7); // 椭圆变形
+                    
+                    // 创建径向渐变
+                    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, sphere.currentRadius);
+                    gradient.addColorStop(0, `${sphere.color}${Math.round(sphere.opacity * 255).toString(16).padStart(2, '0')}`);
+                    gradient.addColorStop(0.7, `${sphere.color}${Math.round(sphere.opacity * 100).toString(16).padStart(2, '0')}`);
+                    gradient.addColorStop(1, `${sphere.color}00`);
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, sphere.currentRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+                
+                requestAnimationFrame(animateSpheres);
+            }
+            
+            animateSpheres();
+        }
+
+        // 科技图标动画系统
+        function initCornerTechIcons() {
+            const container = document.getElementById('cornerTechIcons');
+            
+            const techIcons = [
+                '◉', '◎', '⬢', '⬡', '◈', '◇', '⬟', '⬢',
+                '◐', '◑', '◒', '◓'
+            ];
+            
+            const iconElements = [];
+            const iconCount = 12;
+            const centerX = 90;
+            const centerY = 90;
+            const radius = 75;
+            
+            // 创建图标元素
+            for (let i = 0; i < iconCount; i++) {
+                const icon = document.createElement('div');
+                icon.className = 'corner-tech-icon';
+                icon.textContent = techIcons[i % techIcons.length];
+                
+                const angle = (i / iconCount) * Math.PI * 2 - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                
+                icon.style.left = x + 'px';
+                icon.style.top = y + 'px';
+                icon.style.transform = 'translate(-50%, -50%)';
+                
+                container.appendChild(icon);
+                iconElements.push(icon);
+            }
+            
+            function animateIconCycle() {
+                // 展开动画
+                iconElements.forEach((icon, index) => {
+                    setTimeout(() => {
+                        icon.classList.add('corner-animate-in');
+                    }, index * 80);
+                });
+                
+                // 2秒后开始消失动画
+                setTimeout(() => {
+                    iconElements.forEach((icon, index) => {
+                        setTimeout(() => {
+                            icon.classList.remove('corner-animate-in');
+                            icon.classList.add('corner-animate-out');
+                        }, index * 60);
+                    });
+                    
+                    // 消失动画完成后重置
+                    setTimeout(() => {
+                        iconElements.forEach(icon => {
+                            icon.classList.remove('corner-animate-out');
+                        });
+                        
+                        // 1秒后重新开始
+                        setTimeout(animateIconCycle, 1000);
+                    }, iconCount * 60 + 400);
+                }, 2000);
+            }
+            
+            // 开始动画循环
+            setTimeout(animateIconCycle, 1000);
+        }
+
+        // =================================================================
+        // 🚀 INITIALIZATION FUNCTION - 初始化函数
+        // =================================================================
+        // 说明：系统启动和初始化函数
+        // ❌ 不建议修改：这是核心初始化逻辑，修改可能导致系统无法正常启动
+        // =================================================================
+        
+        function init() {
+            // 创建卡片窗口
+            for (let i = 0; i < contentTemplates.length; i++) createWindow(i);
+            
+            // 创建导航元素
+            createThumbnails();
+            createNavGlobeDots();
+
+            // 绑定事件监听器
+            document.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            document.addEventListener('dblclick', onDoubleClick);
+            document.addEventListener('wheel', onWheel, { passive: false });
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('click', onMarkerClick);
+
+            // 导航箭头事件监听器
+            document.getElementById('prevArrow').addEventListener('click', navigatePrevious);
+            document.getElementById('nextArrow').addEventListener('click', navigateNext);
+
+            // 控制面板切换功能
+            const controlsPanel = document.getElementById('controls');
+            const controlsToggle = document.getElementById('controlsToggle');
+            controlsToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                controlsPanel.classList.toggle('collapsed');
+                console.log('控制面板切换状态:', controlsPanel.classList.contains('collapsed') ? '收缩' : '展开');
+            });
+
+            // 点击面板外部时自动收缩
+            document.addEventListener('click', (e) => {
+                if (!controlsPanel.contains(e.target) && !controlsPanel.classList.contains('collapsed')) {
+                    controlsPanel.classList.add('collapsed');
+                    console.log('点击外部区域，控制面板自动收缩');
+                }
+            });
+
+            // 阻止点击控制面板内部时冒泡
+            controlsPanel.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('controls-toggle-btn') && e.target !== controlsToggle) {
+                    e.stopPropagation();
+                }
+            });
+
+            // 大纲按钮事件监听器
+            const outlineToggle = document.getElementById('outlineToggle');
+            const outlinePanel = document.getElementById('outlinePanel');
+            const outlineList = document.getElementById('outlineList');
+            const thumbnailContainer = document.getElementById('thumbnailContainer');
+            const prevArrow = document.getElementById('prevArrow');
+            const nextArrow = document.getElementById('nextArrow');
+
+            outlineToggle.addEventListener('click', toggleOutlinePanel);
+
+            // 控制面板滑块事件监听器
+            const radiusSlider = document.getElementById('radiusSlider');
+            const depthSlider = document.getElementById('depthSlider');
+            const scaleSlider = document.getElementById('scaleSlider');
+            radiusSlider.addEventListener('input', (e) => {
+                radiusFactor = parseFloat(e.target.value);
+                document.getElementById('radiusValue').textContent = radiusFactor.toFixed(1);
+                recalculateLayout();
+                createNavGlobeDots(); // 重新创建导航球点
+            });
+            depthSlider.addEventListener('input', (e) => {
+                ySpreadFactor = parseFloat(e.target.value);
+                document.getElementById('depthValue').textContent = ySpreadFactor.toFixed(2);
+                recalculateLayout();
+                createNavGlobeDots(); // 重新创建导航球点
+            });
+            scaleSlider.addEventListener('input', (e) => {
+                targetScale = parseFloat(e.target.value);
+                document.getElementById('scaleValue').textContent = targetScale.toFixed(1);
+            });
+
+            // 启动动画循环和内容更新
+            animationLoop();
+            setInterval(() => windows.forEach(updateContent), 5000); // 🔄 可修改：内容更新间隔(毫秒)
+            
+            // 启动JARVIS右下角效果
+            initParticleBackground();
+            init3DSpheres();
+            initCornerTechIcons();
+        }
+
+        // =================================================================
+        // 🎬 SYSTEM STARTUP - 系统启动
+        // =================================================================
+        // 说明：启动整个系统
+        // ❌ 不要修改：这是系统入口点
+        // =================================================================
+        init();
+    </script>
+</body>
+</html>
