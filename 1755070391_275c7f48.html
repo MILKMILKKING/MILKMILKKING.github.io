@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>澳门博彩业“负向X”的投资价值重估｜交互研究页</title>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg: #f7f7fb;
+      --panel: #ffffff;
+      --text: #1f2330;
+      --muted: #5b637a;
+      --primary: #4f46e5;
+      --accent: #10b981;
+      --warn: #f59e0b;
+      --danger:#ef4444;
+      --border:#e6e6ef;
+      --shadow:0 6px 20px rgba(30,35,90,.08);
+      --code:#0f172a;
+    }
+    [data-theme="dark"]{
+      --bg:#0b0d14;
+      --panel:#11131b;
+      --text:#eef1ff;
+      --muted:#a8b0c6;
+      --primary:#8b8cf7;
+      --accent:#34d399;
+      --warn:#fbbf24;
+      --danger:#f87171;
+      --border:#1a1f2d;
+      --shadow:0 8px 26px rgba(0,0,0,.45);
+      --code:#0b1220;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text); font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+    }
+    a{color:var(--primary); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .app{
+      display:grid; grid-template-columns: 260px 1fr; grid-template-rows: 64px 1fr; grid-template-areas:
+      "top top"
+      "side main";
+      min-height:100vh;
+    }
+    header{
+      grid-area: top; position:sticky; top:0; z-index:10;
+      backdrop-filter:saturate(1.2) blur(8px);
+      background: color-mix(in oklab, var(--panel) 90%, transparent);
+      border-bottom:1px solid var(--border);
+    }
+    .topbar{
+      display:flex; align-items:center; gap:12px; padding:10px 16px; max-width:1400px; margin:0 auto;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.2px;
+    }
+    .brand-badge{
+      width:28px; height:28px; border-radius:8px; display:grid; place-items:center;
+      background: radial-gradient(120% 140% at 20% 20%, var(--primary), var(--accent));
+      color:white; font-size:14px; box-shadow:var(--shadow);
+    }
+    .top-actions{margin-left:auto; display:flex; gap:8px}
+    .btn{
+      border:1px solid var(--border); background:var(--panel); color:var(--text);
+      padding:8px 12px; border-radius:10px; cursor:pointer; display:inline-flex; gap:8px; align-items:center;
+      box-shadow:var(--shadow);
+    }
+    .btn:hover{border-color: color-mix(in oklab, var(--primary) 40%, var(--border))}
+    .btn.primary{background:var(--primary); border-color:transparent; color:white}
+    .btn.ghost{background:transparent; border-color:var(--border)}
+    .btn .ic{width:16px; height:16px; display:inline-block}
+    .ic svg{width:16px;height:16px;display:block}
+
+    aside{
+      grid-area: side; position:sticky; top:64px; height:calc(100vh - 64px);
+      border-right:1px solid var(--border); padding:14px 12px; overflow:auto; background:var(--panel);
+    }
+    .toc h3{margin:8px 8px 6px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em}
+    .toc a{
+      display:block; padding:8px 10px; border-radius:8px; color:var(--text);
+      border:1px solid transparent;
+    }
+    .toc a:hover{background: color-mix(in oklab, var(--panel) 70%, var(--bg))}
+    .toc a.active{border-color:var(--primary); background: color-mix(in oklab, var(--primary) 8%, transparent)}
+    .toc .sub{padding-left:16px}
+    main{grid-area: main; padding:24px; max-width:1100px; width:100%; margin:0 auto}
+    section{
+      background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px 18px; margin:16px 0;
+      box-shadow:var(--shadow)
+    }
+    section header.sec{
+      display:flex; align-items:center; justify-content:space-between; gap:8px; margin:-6px 0 8px;
+    }
+    h2{margin:6px 0 8px; font-size:22px}
+    h3{margin:16px 0 8px; font-size:16px; color:var(--muted)}
+    .muted{color:var(--muted)}
+    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background:transparent}
+    .grid{display:grid; gap:12px}
+    .g-2{grid-template-columns:1fr 1fr}
+    .g-3{grid-template-columns:repeat(3,1fr)}
+    .card{border:1px solid var(--border); border-radius:12px; padding:12px; background: color-mix(in oklab, var(--panel) 90%, transparent)}
+    .stat{display:flex; align-items:baseline; gap:8px}
+    .stat .v{font-size:22px; font-weight:700}
+    .stat .t{font-size:12px; color:var(--muted)}
+
+    /* table */
+    .table-wrap{overflow:auto; border:1px solid var(--border); border-radius:12px}
+    table{width:100%; border-collapse:collapse; min-width:720px}
+    th,td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
+    th{background: color-mix(in oklab, var(--panel) 80%, var(--bg)); position:sticky; top:0; z-index:1; cursor:pointer}
+    th.sort-asc::after{content:" ↑"; color:var(--muted)}
+    th.sort-desc::after{content:" ↓"; color:var(--muted)}
+    .table-tools{display:flex; gap:10px; align-items:center; padding:6px 2px 10px}
+
+    /* controls */
+    .ctrl{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .ctrl label{font-size:12px; color:var(--muted)}
+    .input, .range{
+      padding:8px 10px; border:1px solid var(--border); background:var(--panel); color:var(--text);
+      border-radius:10px;
+    }
+    input[type="search"]{min-width:220px}
+    .range{display:flex; flex-direction:column; gap:6px}
+    .range input[type="range"]{width:100%}
+
+    /* collapsible */
+    details{border:1px dashed var(--border); border-radius:10px; padding:10px 12px; background: color-mix(in oklab, var(--panel) 94%, transparent)}
+    details[open]{background: color-mix(in oklab, var(--panel) 88%, transparent)}
+    details summary{cursor:pointer; user-select:none; font-weight:600}
+
+    /* footer */
+    footer{padding:30px 0 60px; color:var(--muted); text-align:center}
+
+    /* print */
+    @media print{
+      header, aside, .top-actions, .no-print{ display:none !important; }
+      main{max-width:none}
+      section{break-inside: avoid}
+      body{background:white}
+    }
+    /* small screens */
+    @media (max-width: 960px){
+      .app{grid-template-columns: 1fr; grid-template-areas:
+      "top"
+      "main";}
+      aside{display:none}
+      .g-2,.g-3{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge">X</div>
+        <div>澳门博彩业“负向X”重估 · 交互研究页</div>
+        <span class="chip">2025-08-13</span>
+      </div>
+      <div class="top-actions">
+        <button class="btn" id="themeBtn" title="深浅色切换">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.64 13a9 9 0 1 1-10.63-10.6 1 1 0 0 1 1.11 1.45A7 7 0 1 0 19.2 13.5 1 1 0 0 1 21.64 13Z"/></svg>
+          </span>
+          主题
+        </button>
+        <button class="btn" id="printBtn" title="打印或导出PDF">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 9V2h12v7h2a2 2 0 0 1 2 2v6h-4v4H6v-4H2v-6a2 2 0 0 1 2-2h2Zm2-5v5h8V4H8Zm8 14H8v4h8v-4Z"/></svg></span>
+          打印/PDF
+        </button>
+        <button class="btn" id="exportBtn" title="导出数据JSON">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v12.59l3.3-3.3 1.4 1.42L12 19.41 7.3 13.7l1.4-1.41 3.3 3.3V3h2zM4 21h16v-2H4v2z"/></svg></span>
+          导出数据
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <aside>
+    <nav class="toc" id="toc">
+      <h3>目录</h3>
+      <!-- 动态生成 -->
+    </nav>
+  </aside>
+
+  <main id="main">
+    <!-- Executive Summary -->
+    <section id="exec-summary">
+      <header class="sec">
+        <h2>核心摘要（Executive Summary）</h2>
+        <div class="chips">
+          <span class="chip">强监管</span>
+          <span class="chip">永久性投资税</span>
+          <span class="chip">非博彩ROI偏低</span>
+        </div>
+      </header>
+      <p>结论：新赌牌将澳门博彩业从“高自由度高利润”的模式，重塑为<strong>高管控、重责任、低回报</strong>的“准公共事业”。行业进入长期“负向X”通道：利润被“永久性投资税”与派息约束压顶，量端受游客结构与消费降级掣肘。短期可见个股 <em>alpha</em>（如美高梅），但难抵行业 <em>beta</em> 下行。</p>
+      <div class="grid g-3">
+        <div class="card stat"><div class="v" id="stat-invest">1,188</div><div class="t">新牌照10年合计投资（亿澳门元）</div></div>
+        <div class="card stat"><div class="v" id="stat-non">1,087</div><div class="t">其中非博彩（亿澳门元）</div></div>
+        <div class="card stat"><div class="v" id="stat-tax">~1.6×</div><div class="t">非博彩承诺/2019行业EBITDA</div></div>
+      </div>
+    </section>
+
+    <!-- Policy Timeline -->
+    <section id="timeline">
+      <header class="sec"><h2>政策演变时间轴（2021—2022）</h2></header>
+      <details open>
+        <summary>展开/收起时间轴要点</summary>
+        <ul>
+          <li><strong>2021-09-14</strong>：修法咨询启动（九大方向：批给数量、期限、政府代表、非博彩等）。</li>
+          <li><strong>2022-06-21</strong>：新《博彩法》（第7/2022号）通过：牌照期限由20年降至10年、禁副牌。</li>
+          <li><strong>2022-07-28</strong>：公开竞投启动。</li>
+          <li><strong>2022-11-26</strong>：六家原持牌者获临时判给。</li>
+          <li><strong>2022-12-16</strong>：新合同签署，2023-01-01起生效，10年期并捆绑非博彩投资。</li>
+        </ul>
+      </details>
+    </section>
+
+    <!-- Clause Comparison -->
+    <section id="clauses">
+      <header class="sec"><h2>新旧赌牌核心条款对比（从规则看意图）</h2></header>
+      <div class="table-tools">
+        <input class="input" type="search" placeholder="搜索关键词…" data-table="tblClauses"/>
+      </div>
+      <div class="table-wrap">
+        <table id="tblClauses">
+          <thead>
+          <tr>
+            <th data-key="dim">条款维度</th>
+            <th data-key="old">旧（2002-2022）</th>
+            <th data-key="new">新（2023-2032）</th>
+            <th data-key="impact">影响与解读</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- MGM Alpha -->
+    <section id="mgm">
+      <header class="sec"><h2>美高梅中国“Alpha”表现（高端中场与供给侧）</h2></header>
+      <div class="grid g-2">
+        <div class="card">
+          <h3>政策总量控制与择优分配</h3>
+          <p>赌桌上限 6,000，角子机上限 12,000；增减由政府依据“非博彩/国际客源承诺与执行”动态分配。</p>
+          <ul class="muted">
+            <li>美高梅获净增赌桌（示例数据 +198），市场份额显著提升。</li>
+            <li>“承诺质量”与“承诺兑现”＞“历史份额”。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <canvas id="chartMGMShare" height="150"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sands China Case -->
+    <section id="sands">
+      <header class="sec"><h2>金沙中国疫情前后财务对比：利润天花板的形成</h2></header>
+      <div class="grid g-2">
+        <div class="card">
+          <h3>EBITDA Margin 对比</h3>
+          <canvas id="chartSandsMargin" height="150"></canvas>
+        </div>
+        <div class="card">
+          <h3>派息与资本开支</h3>
+          <p class="muted">2025年象征性恢复派息（示例：每股 0.25 港元），远低于疫情前；中期以完成非博彩承诺为先。</p>
+          <div class="grid">
+            <div class="stat"><div class="v">36.3%</div><div class="t">2019 EBITDA Margin</div></div>
+            <div class="stat"><div class="v">~32.9%</div><div class="t">2024 EBITDA Margin（示例）</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Six Operators Comparison -->
+    <section id="ops">
+      <header class="sec"><h2>六大博企关键指标横向比较（后疫情）</h2></header>
+      <div class="table-tools">
+        <input class="input" type="search" placeholder="搜索公司…" data-table="tblOps"/>
+      </div>
+      <div class="table-wrap">
+        <table id="tblOps">
+          <thead>
+          <tr>
+            <th data-key="name">公司</th>
+            <th data-key="share2019">市占 2019</th>
+            <th data-key="share2024">市占 2024</th>
+            <th data-key="share2025q1">市占 2025Q1</th>
+            <th data-key="ebitdaRec">EBITDA恢复（对2019）</th>
+            <th data-key="nonCapex">非博彩承诺（亿澳门元）</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Non-gaming Reality -->
+    <section id="non-gaming">
+      <header class="sec"><h2>非博彩业务的现实与困境</h2></header>
+      <div class="grid g-2">
+        <div class="card">
+          <h3>旅客人均非博彩消费（示例口径）</h3>
+          <canvas id="chartSpend" height="160"></canvas>
+        </div>
+        <div class="card">
+          <h3>结构性原因</h3>
+          <ul>
+            <li>不过夜旅客增长快、人均低，稀释均值；</li>
+            <li>核心客源地人均下降；</li>
+            <li>非博彩项目以“合规/引流”为主，独立ROI低。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vegas vs Macau -->
+    <section id="vegas">
+      <header class="sec"><h2>拉斯维加斯 vs 澳门（不可简单复制）</h2></header>
+      <div class="grid g-2">
+        <div class="card">
+          <h3>结构差异要点</h3>
+          <ul class="muted">
+            <li>目的地型 vs 区域短途；</li>
+            <li>MICE引擎成熟 vs 占比有限；</li>
+            <li>逗留时长更长 vs 更短；</li>
+            <li>非博彩为利润中心 vs 多为成本/合规中心。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>非博彩占比对比（示意）</h3>
+          <canvas id="chartMix" height="150"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Permanent Investment Tax -->
+    <section id="tax">
+      <header class="sec"><h2>“永久性投资税”量化（非博彩承诺 / 2019 EBITDA）</h2></header>
+      <div class="table-tools">
+        <input class="input" type="search" placeholder="搜索公司…" data-table="tblTax"/>
+      </div>
+      <div class="table-wrap">
+        <table id="tblTax">
+          <thead>
+          <tr>
+            <th data-key="name">公司</th>
+            <th data-key="nonCapex">非博彩承诺（亿澳门元）</th>
+            <th data-key="ebitda2019">2019 EBITDA（亿港元）</th>
+            <th data-key="multiple">倍数</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ROI Sandbox -->
+    <section id="roi">
+      <header class="sec"><h2>ROI 沙盒（综艺馆 & 会展）</h2></header>
+
+      <div class="grid g-2">
+        <div class="card">
+          <h3>综艺馆模型</h3>
+          <div class="grid">
+            <div class="range">
+              <label>座位数 <span id="s_seats_v"></span></label>
+              <input type="range" id="s_seats" min="8000" max="20000" step="500" value="16000">
+            </div>
+            <div class="range">
+              <label>年场次 <span id="s_events_v"></span></label>
+              <input type="range" id="s_events" min="10" max="80" step="1" value="40">
+            </div>
+            <div class="range">
+              <label>上座率 <span id="s_occ_v"></span></label>
+              <input type="range" id="s_occ" min="40" max="100" step="1" value="80">
+            </div>
+            <div class="range">
+              <label>平均票价（MOP） <span id="s_price_v"></span></label>
+              <input type="range" id="s_price" min="300" max="2000" step="50" value="1000">
+            </div>
+            <div class="range">
+              <label>艺人/制作分成（%票房） <span id="s_split_v"></span></label>
+              <input type="range" id="s_split" min="40" max="80" step="1" value="60">
+            </div>
+            <div class="range">
+              <label>营销占比（%票房） <span id="s_mkt_v"></span></label>
+              <input type="range" id="s_mkt" min="5" max="20" step="1" value="10">
+            </div>
+            <div class="range">
+              <label>固定成本/年（亿MOP） <span id="s_fixed_v"></span></label>
+              <input type="range" id="s_fixed" min="0.2" max="2.0" step="0.05" value="0.8">
+            </div>
+            <div class="range">
+              <label>一次性资本开支（亿MOP） <span id="s_capex_v"></span></label>
+              <input type="range" id="s_capex" min="8" max="35" step="1" value="20">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>会展模型（简化）</h3>
+          <div class="grid">
+            <div class="range">
+              <label>场馆面积（千㎡） <span id="m_area_v"></span></label>
+              <input type="range" id="m_area" min="10" max="120" step="5" value="30">
+            </div>
+            <div class="range">
+              <label>年活动天数 <span id="m_days_v"></span></label>
+              <input type="range" id="m_days" min="30" max="280" step="10" value="120">
+            </div>
+            <div class="range">
+              <label>日均租金（万MOP） <span id="m_rate_v"></span></label>
+              <input type="range" id="m_rate" min="5" max="80" step="1" value="25">
+            </div>
+            <div class="range">
+              <label>运营毛利率（%） <span id="m_margin_v"></span></label>
+              <input type="range" id="m_margin" min="0" max="30" step="1" value="8">
+            </div>
+            <div class="range">
+              <label>固定成本/年（亿MOP） <span id="m_fixed_v"></span></label>
+              <input type="range" id="m_fixed" min="0.2" max="2.5" step="0.05" value="1.0">
+            </div>
+            <div class="range">
+              <label>一次性资本开支（亿MOP） <span id="m_capex_v"></span></label>
+              <input type="range" id="m_capex" min="10" max="60" step="1" value="30">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid g-2">
+        <div class="card">
+          <h3>综艺馆：测算结果</h3>
+          <ul id="s_result" class="muted"></ul>
+          <canvas id="chartShow" height="140"></canvas>
+        </div>
+        <div class="card">
+          <h3>会展：测算结果</h3>
+          <ul id="m_result" class="muted"></ul>
+          <canvas id="chartMice" height="140"></canvas>
+        </div>
+      </div>
+      <p class="muted">说明：沙盒为示意模型，目的在于对比“直接财务回报”与“长期合规/引流价值”的张力，便于你在报告中把定性论述与量化直觉统一。</p>
+    </section>
+
+    <!-- Sources -->
+    <section id="sources">
+      <header class="sec"><h2>信息与口径（可替换）</h2></header>
+      <p class="muted">本页数据为示例口径，便于结构化展示与交互。你可以把自己的表格/口径替换到 <code>datasets</code> 中，页面会自动更新表格与图表。</p>
+      <details>
+        <summary>如何替换我的数据？</summary>
+        <ol>
+          <li>用编辑器打开本文件，搜索 <code>const datasets = { ... }</code>。</li>
+          <li>按字段注释替换为你的数据（单位保持一致，或在文本中标注）。</li>
+          <li>刷新页面；若需分享静态稿，使用“打印/PDF”。</li>
+        </ol>
+      </details>
+    </section>
+
+    <!-- Design Notes -->
+    <section id="design">
+      <header class="sec"><h2>设计说明：为什么这样做？</h2></header>
+      <ul>
+        <li><strong>可交互</strong>：ROI 沙盒与图表联动，让结论不仅“看起来对”，还“动起来对”。</li>
+        <li><strong>精美</strong>：暗/亮主题、柔和阴影、统一圆角与间距，保持投研场景的稳重感。</li>
+        <li><strong>细节展示</strong>：目录锚点、可折叠段落、表格搜索与排序，支持路演与复盘。</li>
+        <li><strong>可移植</strong>：零构建、单文件、自带打印样式；导出 JSON 便于后续做看板或喂给模型。</li>
+      </ul>
+    </section>
+
+    <footer class="muted">© 2025 交互研究页 · 可自由复制与二次创作</footer>
+  </main>
+</div>
+
+<script>
+  // ============== 数据集（示例） ==============
+  const datasets = {
+    summary: { investTotal: 1188, nonGaming: 1087, taxMultiple: "~1.6×" },
+    clauses: [
+      {
+        dim:"经营期限",
+        old:"最长20年，可延长5年",
+        new:"改为10年，仅可例外延长至多3年",
+        impact:"回收期缩短，续牌不确定性抬升 → 估值中枢下移"
+      },
+      {
+        dim:"牌照性质",
+        old:"3主牌+3副牌（可转批给）",
+        new:"上限6家，严禁副牌/转批给",
+        impact:"寻租空间消失，政府直达控制力增强"
+      },
+      {
+        dim:"资本/投资",
+        old:"最低资本金2亿MOP；非博彩多为鼓励性",
+        new:"最低资本金50亿MOP；10年非博彩承诺>千亿",
+        impact:"“永久性投资税”锁定自由现金流"
+      },
+      {
+        dim:"税负与激励",
+        old:"博彩税35%+最多4%拨入 ≈39%",
+        new:"35%+5%拨入 ≈40%；外客引流可获减免",
+        impact:"名义税升；引外客为难度更高的新KPI"
+      },
+      {
+        dim:"管控权",
+        old:"事后合规为主",
+        new:"政府代表、重大决策审批、派息限制、国家安全条款",
+        impact:"“准公用事业化”：主权目标优先于商业目标"
+      },
+      {
+        dim:"中介/VIP",
+        old:"可与中介分成",
+        new:"仅佣金、且一对一合作",
+        impact:"高利润VIP生态被重塑，中场成为核心"
+      },
+      {
+        dim:"本地持股",
+        old:"≥10%",
+        new:"提升至≥15%",
+        impact:"本地利益绑定加强"
+      }
+    ],
+    mgmShare: { labels:["2019","2024","2025Q1"], mgm:[9.5,17.2,17.5], peers:[90.5,82.8,82.5] },
+    sandsMargins: { labels:["2019","2023","2024"], margin:[36.3,34.1,32.9] },
+    operators: [
+      { name:"金沙中国", share2019:23.7, share2024:23.1, share2025q1:22.0, ebitdaRec:"75%~80%", nonCapex:300 },
+      { name:"银河娱乐", share2019:22.8, share2024:22.0, share2025q1:22.5, ebitdaRec:"80%~85%", nonCapex:284 },
+      { name:"美高梅中国", share2019:9.5, share2024:17.2, share2025q1:17.5, ebitdaRec:"~145%", nonCapex:167 },
+      { name:"新濠博亚/国际", share2019:15.2, share2024:14.5, share2025q1:14.0, ebitdaRec:"70%~75%", nonCapex:118 },
+      { name:"永利澳门", share2019:16.2, share2024:13.5, share2025q1:13.0, ebitdaRec:"70%~75%", nonCapex:177 },
+      { name:"澳娱综合/澳博", share2019:14.1, share2024:13.1, share2025q1:12.5, ebitdaRec:"~90%", nonCapex:140 }
+    ],
+    spend: { labels:["2024","2025Q1","2025Q2"], perCapita:[2157,1989,1950] },
+    mix: { labels:["Vegas 非博彩","Vegas 博彩","Macau 非博彩*","Macau 博彩*"], values:[63.4,36.6,38.3,61.7] },
+    tax: [
+      { name:"美高梅中国", nonCapex:150, ebitda2019:62.0, multiple:2.42 },
+      { name:"澳博控股/澳娱综合", nonCapex:120, ebitda2019:42.1, multiple:2.85 },
+      { name:"银河娱乐", nonCapex:275, ebitda2019:165.0, multiple:1.67 },
+      { name:"新濠国际/博亚", nonCapex:118, ebitda2019:125.0, multiple:0.94 },
+      { name:"金沙中国", nonCapex:278, ebitda2019:248.7, multiple:1.12 },
+      { name:"永利澳门", nonCapex:165, ebitda2019:95.7, multiple:1.72 }
+    ]
+  };
+
+  // ============== 工具函数 ==============
+  const $ = (q, el=document)=>el.querySelector(q);
+  const $$ = (q, el=document)=>Array.from(el.querySelectorAll(q));
+
+  function downloadJSON(obj, filename="datasets.json"){
+    const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // 构造 TOC
+  function buildTOC(){
+    const toc = $("#toc");
+    const sections = $$("main > section");
+    sections.forEach(sec=>{
+      const h2 = sec.querySelector("h2");
+      if(!h2 || !sec.id) return;
+      const a = document.createElement("a");
+      a.href = `#${sec.id}`;
+      a.textContent = h2.textContent;
+      a.dataset.target = sec.id;
+      toc.appendChild(a);
+      // h3 子项
+      const subs = sec.querySelectorAll("h3");
+      if(subs.length){
+        const wrap = document.createElement("div"); wrap.className="sub";
+        subs.forEach(s=>{
+          const id = s.id || (s.id = sec.id + "-" + s.textContent.trim().replace(/\s+/g,"-"));
+          const sa = document.createElement("a");
+          sa.href = `#${id}`;
+          sa.textContent = "— " + s.textContent;
+          wrap.appendChild(sa);
+        });
+        toc.appendChild(wrap);
+      }
+    });
+    // 高亮当前
+    const obs = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){
+          const id = e.target.id;
+          $$("#toc a").forEach(a=>a.classList.toggle("active", a.dataset.target===id));
+        }
+      });
+    },{rootMargin:"-40% 0px -55% 0px", threshold:0});
+    sections.forEach(s=>obs.observe(s));
+  }
+
+  // 表格：渲染+搜索+排序
+  function renderTable(el, rows, columns){
+    const tbody = el.querySelector("tbody");
+    function draw(data){
+      tbody.innerHTML = data.map(r=>{
+        return "<tr>" + columns.map(c => `<td>${r[c] ?? ""}</td>`).join("") + "</tr>";
+      }).join("");
+    }
+    draw(rows);
+
+    // 搜索
+    const search = document.querySelector(`input[data-table="${el.id}"]`);
+    let filtered = rows.slice();
+    if(search){
+      search.addEventListener("input", ()=>{
+        const q = search.value.trim().toLowerCase();
+        filtered = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(q)));
+        draw(filtered);
+      });
+    }
+    // 排序
+    el.querySelectorAll("th").forEach(th=>{
+      th.addEventListener("click", ()=>{
+        const key = th.dataset.key;
+        const current = th.classList.contains("sort-asc") ? "asc" : th.classList.contains("sort-desc") ? "desc" : null;
+        el.querySelectorAll("th").forEach(h=>h.classList.remove("sort-asc","sort-desc"));
+        const next = current==="asc" ? "desc" : "asc";
+        th.classList.add(next==="asc" ? "sort-asc" : "sort-desc");
+        const num = (v)=> (typeof v==="number" || /^[\d\.\-]+$/.test(String(v))) ? Number(v) : NaN;
+        filtered.sort((a,b)=>{
+          const av = a[key], bv = b[key];
+          const an = num(av), bn = num(bv);
+          if(!Number.isNaN(an) && !Number.isNaN(bn)){
+            return next==="asc" ? an - bn : bn - an;
+          }
+          return next==="asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+        });
+        draw(filtered);
+      });
+    });
+  }
+
+  // 主题切换
+  function initTheme(){
+    const saved = localStorage.getItem("theme");
+    if(saved) document.documentElement.setAttribute("data-theme", saved);
+    $("#themeBtn").addEventListener("click", ()=>{
+      const cur = document.documentElement.getAttribute("data-theme");
+      const next = cur==="dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("theme", next);
+    });
+  }
+
+  // 图表
+  let chartMGMShare, chartSandsMargin, chartSpend, chartMix, chartShow, chartMice;
+
+  function initCharts(){
+    // MGM 市占
+    chartMGMShare = new Chart($("#chartMGMShare"), {
+      type:"line",
+      data:{
+        labels: datasets.mgmShare.labels,
+        datasets:[
+          { label:"MGM 中国", data:datasets.mgmShare.mgm, tension:.3 },
+          { label:"其它合计", data:datasets.mgmShare.peers, tension:.3 }
+        ]
+      },
+      options:{ responsive:true, plugins:{ legend:{position:"bottom"}}, scales:{ y:{ ticks:{ callback:v=>v+"%"}}}}
+    });
+
+    // Sands margin
+    chartSandsMargin = new Chart($("#chartSandsMargin"), {
+      type:"bar",
+      data:{ labels:datasets.sandsMargins.labels, datasets:[{label:"EBITDA Margin", data:datasets.sandsMargins.margin}]},
+      options:{responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:v=>v+"%"}}}}
+    });
+
+    // Non-gaming spend
+    chartSpend = new Chart($("#chartSpend"), {
+      type:"bar",
+      data:{ labels:datasets.spend.labels, datasets:[{label:"人均非博彩消费（MOP）", data:datasets.spend.perCapita}]},
+      options:{responsive:true, plugins:{legend:{position:"bottom"}}}
+    });
+
+    // Mix comparison (示意)
+    chartMix = new Chart($("#chartMix"), {
+      type:"doughnut",
+      data:{ labels:datasets.mix.labels, datasets:[{data:datasets.mix.values}]},
+      options:{responsive:true, plugins:{legend:{position:"bottom"}}}
+    });
+  }
+
+  // ROI 计算
+  function fmt(num, digits=2){ return Number(num).toLocaleString(undefined,{maximumFractionDigits:digits})}
+  function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val }
+
+  function calcShow(){
+    const seats = +$("#s_seats").value;
+    const events= +$("#s_events").value;
+    const occ   = +$("#s_occ").value/100;
+    const price = +$("#s_price").value;
+    const split = +$("#s_split").value/100;
+    const mkt   = +$("#s_mkt").value/100;
+    const fixed = +$("#s_fixed").value * 1e8; // 亿MOP → MOP
+    const capex = +$("#s_capex").value * 1e8;
+
+    // 收入
+    const ticket = events * seats * occ * price; // MOP
+    const sponsor = ticket * 0.15;
+    const revenue = ticket + sponsor;
+
+    // 成本
+    const artist = ticket * split;
+    const marketing = ticket * mkt;
+    const cost = artist + marketing + fixed;
+
+    const ebitda = revenue - cost;
+    const roi = capex>0 ? (ebitda / capex) : 0;
+    const payback = ebitda>0 ? (capex / ebitda) : Infinity;
+
+    // 文本
+    setText("s_seats_v", seats.toLocaleString());
+    setText("s_events_v", events);
+    setText("s_occ_v", Math.round(occ*100)+"%");
+    setText("s_price_v", price);
+    setText("s_split_v", Math.round(split*100)+"%");
+    setText("s_mkt_v", Math.round(mkt*100)+"%");
+    setText("s_fixed_v", $("#s_fixed").value+"");
+    setText("s_capex_v", $("#s_capex").value+"");
+
+    const ul = $("#s_result");
+    ul.innerHTML = `
+      <li>票房收入：<strong>${fmt(ticket/1e8,3)}</strong> 亿 MOP</li>
+      <li>赞助/租金等：<strong>${fmt(sponsor/1e8,3)}</strong> 亿 MOP</li>
+      <li>年度总收入：<strong>${fmt(revenue/1e8,3)}</strong> 亿 MOP</li>
+      <li>年度成本（含固定）：<strong>${fmt(cost/1e8,3)}</strong> 亿 MOP</li>
+      <li>年度 EBITDA：<strong>${fmt(ebitda/1e8,3)}</strong> 亿 MOP</li>
+      <li>静态 ROI：<strong>${fmt(roi*100,2)}%</strong></li>
+      <li>回收期：<strong>${(payback===Infinity?'∞':fmt(payback,2))}</strong> 年</li>
+    `;
+
+    // 图
+    const labels = ["收入","成本","EBITDA"];
+    const values = [revenue, cost, ebitda].map(v=> +(v/1e8).toFixed(3));
+    if(chartShow){ chartShow.destroy(); }
+    chartShow = new Chart($("#chartShow"), {
+      type:"bar",
+      data:{ labels, datasets:[{label:"亿 MOP", data:values}]},
+      options:{responsive:true, plugins:{legend:{display:false}}}
+    });
+  }
+
+  function calcMice(){
+    const areaK = +$("#m_area").value; // 千㎡
+    const days  = +$("#m_days").value;
+    const rateW = +$("#m_rate").value; // 万/日
+    const mgn   = +$("#m_margin").value/100;
+    const fixed = +$("#m_fixed").value * 1e8;
+    const capex = +$("#m_capex").value * 1e8;
+
+    // 简化估计：收入 ~ 面积系数 * 天数 * 日租
+    // 面积系数（相对）：按 1.0 为 30千㎡ 标准
+    const areaCoef = areaK/30;
+    const revenue = areaCoef * days * (rateW*1e4); // MOP
+    const gross = revenue * mgn;
+    const ebitda = gross - fixed;
+    const roi = capex>0 ? (ebitda / capex) : 0;
+    const payback = ebitda>0 ? (capex / ebitda) : Infinity;
+
+    setText("m_area_v", areaK+"");
+    setText("m_days_v", days+"");
+    setText("m_rate_v", rateW+"");
+    setText("m_margin_v", Math.round(mgn*100)+"%");
+    setText("m_fixed_v", $("#m_fixed").value+"");
+    setText("m_capex_v", $("#m_capex").value+"");
+
+    const ul = $("#m_result");
+    ul.innerHTML = `
+      <li>年度收入（场租等）：<strong>${fmt(revenue/1e8,3)}</strong> 亿 MOP</li>
+      <li>运营毛利：<strong>${fmt(gross/1e8,3)}</strong> 亿 MOP</li>
+      <li>年度 EBITDA（扣固定）：<strong>${fmt(ebitda/1e8,3)}</strong> 亿 MOP</li>
+      <li>静态 ROI：<strong>${fmt(roi*100,2)}%</strong></li>
+      <li>回收期：<strong>${(payback===Infinity?'∞':fmt(payback,2))}</strong> 年</li>
+    `;
+
+    if(chartMice){ chartMice.destroy(); }
+    chartMice = new Chart($("#chartMice"), {
+      type:"bar",
+      data:{ labels:["收入","毛利","EBITDA"], datasets:[{label:"亿 MOP", data:[revenue, gross, ebitda].map(v=>+(v/1e8).toFixed(3))}]},
+      options:{responsive:true, plugins:{legend:{display:false}}}
+    });
+  }
+
+  // ============== 启动渲染 ==============
+  function init(){
+    // 核心摘要数值
+    $("#stat-invest").textContent = datasets.summary.investTotal;
+    $("#stat-non").textContent = datasets.summary.nonGaming;
+    $("#stat-tax").textContent = datasets.summary.taxMultiple;
+
+    // 表格
+    renderTable($("#tblClauses"), datasets.clauses, ["dim","old","new","impact"]);
+    renderTable($("#tblOps"), datasets.operators, ["name","share2019","share2024","share2025q1","ebitdaRec","nonCapex"]);
+    renderTable($("#tblTax"), datasets.tax, ["name","nonCapex","ebitda2019","multiple"]);
+
+    // 图表
+    initCharts();
+
+    // ROI
+    ["s_seats","s_events","s_occ","s_price","s_split","s_mkt","s_fixed","s_capex"].forEach(id=>{
+      $("#"+id).addEventListener("input", calcShow);
+    });
+    ["m_area","m_days","m_rate","m_margin","m_fixed","m_capex"].forEach(id=>{
+      $("#"+id).addEventListener("input", calcMice);
+    });
+    calcShow(); calcMice();
+
+    // TOC
+    buildTOC();
+
+    // 主题/打印/导出
+    initTheme();
+    $("#printBtn").addEventListener("click", ()=>window.print());
+    $("#exportBtn").addEventListener("click", ()=>downloadJSON(datasets));
+
+    // 平滑滚动
+    document.documentElement.style.scrollBehavior = "smooth";
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
