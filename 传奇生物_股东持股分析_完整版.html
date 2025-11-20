@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>传奇生物 - 股东持股变化分析（完整版）</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .chart-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 700px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .control-group select,
+        .control-group input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .control-group select:focus,
+        .control-group input:focus {
+            border-color: #667eea;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-height: 800px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        
+        th, td {
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+            white-space: nowrap;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 700;
+            color: #495057;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        th:hover {
+            background: #e9ecef;
+        }
+        
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .shareholder-name {
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 5;
+        }
+        
+        tbody tr:hover .shareholder-name {
+            background: #f8f9fa;
+        }
+        
+        .date-header {
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .cell-data {
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .has-data {
+            color: #333;
+        }
+        
+        .no-data {
+            color: #ccc;
+            font-style: italic;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+        
+        .legend-item:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+        }
+        
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+        
+        .legend-label {
+            color: #555;
+        }
+        
+        .search-box {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+        
+        .search-box input {
+            padding: 8px 12px 8px 38px;
+            width: 300px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box input:focus {
+            border-color: #667eea;
+        }
+        
+        .highlight-major {
+            background: #fff3cd !important;
+            font-weight: bold;
+        }
+        
+        .major-shareholder-indicator {
+            display: inline-block;
+            margin-left: 5px;
+            padding: 2px 6px;
+            background: #ff4757;
+            color: white;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        function App() {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+            const [showTop, setShowTop] = useState(15);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedShareholders, setSelectedShareholders] = useState(new Set());
+            const [highlightedIndex, setHighlightedIndex] = useState(null);
+            const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc', dateIndex: null });
+
+            // 数据准备 - 所有24个时间点
+            const dates = ['2022-12-31', '2023-01-31', '2023-02-28', '2023-03-31', '2023-04-28', '2023-04-30', '2023-06-30', '2023-07-31', '2023-09-30', '2023-12-31', '2024-01-31', '2024-03-31', '2024-04-30', '2024-06-30', '2024-07-31', '2024-09-30', '2024-12-31', '2025-01-31', '2025-03-31', '2025-04-30', '2025-06-30', '2025-07-31', '2025-08-31', '2025-09-30'];
+
+            // 所有41个股东的完整数据
+            const shareholders = [
+                {name: '金斯瑞生物科技股份有限公司', shares: [17449.76, null, null, null, 17449.76, null, null, null, null, 17449.76, null, null, null, null, null, 17449.76, 17449.76, null, null, null, 17449.76, null, null, 17449.76]},
+                {name: 'AquaPoint LP', shares: [3032.0, null, null, null, 3032.0, null, null, null, null, 3030.0, null, null, null, null, null, 3030.0, 3030.0, null, null, null, 3030.0, null, null, 3030.0]},
+                {name: 'FMR LLC', shares: [null, null, null, 1639.47, null, null, 1704.55, null, 1590.54, 1279.8, null, 1614.7, null, 1762.16, null, 3638.04, 3638.04, null, 1320.42, null, 5100.26, null, null, 5509.37]},
+                {name: 'Entities affiliated with FMR LLC', shares: [null, null, null, null, null, null, null, null, null, 2559.6, null, null, null, null, null, 2559.6, 2559.6, null, null, null, 2559.6, null, null, 2559.6]},
+                {name: 'HILLHOUSE INVESTMENT MANAGEMENT, LTD.', shares: [2027.32, null, null, null, 2027.32, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]},
+                {name: 'BlackRock Finance, Inc.', shares: [null, null, null, 412.8, null, null, 474.36, null, 462.1, 2106.48, null, 538.4, null, 572.13, null, 2106.48, 2106.48, null, 452.7, null, 2106.48, null, null, 2106.48]},
+                {name: 'T. ROWE PRICE ASSOCIATES, INC.', shares: [null, null, null, null, null, null, null, null, null, 2161.64, null, null, null, null, null, 1114.2, 680.8, null, null, null, 680.8, null, null, 680.8]},
+                {name: 'FIDELITY MANAGEMENT & RESEARCH COMPANY LLC', shares: [null, null, 1010.86, null, null, null, 932.27, null, 1034.53, 907.9, null, 1005.75, null, 1209.74, null, 1198.43, null, null, null, null, 143.96, null, 1691.09, null]},
+                {name: '普信投資有限公司', shares: [null, null, null, null, null, null, 903.13, null, 969.34, 1080.82, null, 1094.91, null, 1148.93, null, 1116.56, 680.81, null, 672.98, null, null, null, null, null]},
+                {name: 'RA CAPITAL MANAGEMENT, L.P.', shares: [null, null, null, 243.62, null, null, 626.47, null, 626.47, 626.47, null, 686.11, null, 750.69, null, 750.69, 750.69, null, null, null, null, null, null, null]},
+                {name: 'HHLR ADVISORS, LTD.', shares: [null, null, null, 513.04, null, null, 643.65, null, 643.65, 598.46, null, 598.46, null, 663.65, null, 663.65, 598.46, null, 598.46, null, null, null, null, null]},
+                {name: 'WESTFIELD CAPITAL MANAGEMENT COMPANY, L.P.', shares: [null, null, null, null, null, null, null, null, null, 177.62, null, 223.98, null, 477.22, null, 503.85, 571.37, null, 691.76, null, null, null, null, 609.45]},
+                {name: 'CAPITAL RESEARCH AND MANAGEMENT COMPANY', shares: [null, null, null, 428.17, null, null, 425.8, null, 417.95, 416.93, null, 449.8, null, 267.35, null, 218.68, null, null, null, null, null, null, null, null]},
+                {name: 'SUVRETTA CAPITAL MANAGEMENT, LLC', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 349.62, null, null, null, 377.4, null, null, 381.8]},
+                {name: 'Citadel Advisors LLC', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 296.38, null, null, null, null, null, null, null]},
+                {name: 'Invesco Ltd.', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 228.76, 331.0, null, 293.67, null, null, null, null, null]},
+                {name: 'Capital World Investors', shares: [null, null, null, 238.94, null, null, 238.8, null, 238.78, 238.6, null, 238.6, null, null, null, null, null, null, null, null, null, null, null, null]},
+                {name: 'BRAIDWELL LP', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, 166.97, null, 154.16, 297.8, null, 297.8, null, 254.21, null, null, null]},
+                {name: 'Artisan Partners Limited Partnership', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 212.23, null, null, 254.8]},
+                {name: 'BlackRock Fund Advisors.', shares: [null, null, null, null, null, null, 201.11, null, 207.67, 215.31, null, 254.36, null, 253.47, null, 253.17, 241.96, null, 226.33, null, 217.21, null, 156.32, null]},
+                {name: 'WELLINGTON MANAGEMENT GROUP LLP', shares: [null, null, null, 175.74, null, null, 165.79, null, null, 230.64, null, 261.44, null, null, null, null, 212.08, null, 185.73, null, null, null, null, null]},
+                {name: 'Janus Henderson Group Plc', shares: [null, null, null, 193.91, null, null, 181.43, null, 173.38, 186.52, null, 201.4, null, 235.91, null, 218.56, 215.67, null, 205.78, null, 209.27, null, null, 212.51]},
+                {name: 'MASSACHUSETTS FINANCIAL SERVICES COMPANY', shares: [null, null, null, 151.32, null, null, 165.47, null, 186.7, 198.48, null, 189.08, null, 196.07, null, 227.52, 226.36, null, 227.03, null, null, null, null, null]},
+                {name: 'POLAR CAPITAL HOLDINGS PLC', shares: [null, null, null, 197.56, null, null, 187.21, null, 187.21, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]},
+                {name: 'Paradigm Biocapital Advisors LP', shares: [null, null, null, 151.03, null, null, 180.57, null, 202.55, 189.46, null, 198.2, null, null, null, null, null, null, null, null, null, null, null, null]},
+                {name: 'The Goldman Sachs Group, Inc.', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 256.21, null, null, null, 107.13, null, null, null]},
+                {name: 'Capital International Investors', shares: [null, null, null, 195.07, null, null, 186.2, null, 183.28, 182.47, null, 218.11, null, 216.27, null, 222.44, 216.15, null, 167.73, null, 108.25, null, null, 94.16]},
+                {name: 'HOLOCENE ADVISORS, LP', shares: [null, null, null, null, null, null, null, null, null, 176.07, null, null, null, null, null, null, null, null, null, null, null, null, null, null]},
+                {name: 'DEERFIELD MANAGEMENT COMPANY, L.P.', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 174.36, null, null, null, null, null]},
+                {name: '威灵顿管理有限责任公司(美国)', shares: [null, 148.32, null, null, null, 148.32, null, null, null, null, 190.06, null, 190.06, null, 190.06, null, null, null, null, null, null, null, null, null]},
+                {name: 'Adage Capital Partners GP, L.L.C.', shares: [null, null, null, null, null, null, null, null, 170.85, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]},
+                {name: 'STRATEGIC ADVISERS LLC', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 168.23, null]},
+                {name: 'Invesco Advisers, Inc.', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 167.5, null, null, null, null, null, null, null, null, null]},
+                {name: 'Johnson & Johnson', shares: [null, null, null, 162.92, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]},
+                {name: 'Federated Hermes, Inc.', shares: [null, null, null, 233.88, null, null, 194.15, null, 176.45, null, null, null, null, 154.13, null, null, null, null, 139.17, null, 106.37, null, null, 106.53]},
+                {name: 'Alliance Bernstein L.P.', shares: [null, null, null, 157.79, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 150.83, null, 156.06, null, null, 163.3]},
+                {name: 'FEDERATED GLOBAL INVESTMENT MANAGEMENT CORP.', shares: [null, null, null, null, null, null, null, 191.41, null, null, null, null, 151.75, null, null, null, null, 136.43, null, 131.97, null, 104.14, null, null]},
+                {name: 'Balyasny Asset Management L.P.', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 132.26, null, null, null]},
+                {name: 'MATTHEWS INTERNATIONAL CAPITAL MANAGEMENT, LLC', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 129.31, null, null, 102.84]},
+                {name: 'State Street Corporation', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 111.97, null, null, 115.71]},
+                {name: 'UBS Group AG', shares: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 101.09]}
+            ];
+
+            // 为每个股东生成颜色
+            const colors = shareholders.map((_, index) => {
+                const hue = (index * 360 / shareholders.length) % 360;
+                return `hsl(${hue}, 70%, 50%)`;
+            });
+
+            // 计算每个股东的平均持股量和数据点数
+            const shareholdersWithAvg = shareholders.map((sh, index) => {
+                const validShares = sh.shares.filter(s => s !== null);
+                const avgShares = validShares.reduce((sum, s) => sum + s, 0) / validShares.length;
+                const maxShares = Math.max(...validShares);
+                const totalShares = 36892.31; // 总股本（万股）
+                
+                const ratios = sh.shares.map((share) => {
+                    if (share === null) return null;
+                    return (share / totalShares) * 100;
+                });
+                
+                return {
+                    ...sh,
+                    index,
+                    avgShares,
+                    maxShares,
+                    dataPoints: validShares.length,
+                    ratios,
+                    isMajor: avgShares > 5000 // 标记主要股东（平均持股超过5000万股）
+                };
+            }).sort((a, b) => b.avgShares - a.avgShares);
+
+            // 过滤和搜索
+            const filteredShareholders = shareholdersWithAvg
+                .filter(sh => sh.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .slice(0, showTop);
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                const ctx = chartRef.current.getContext('2d');
+                
+                const datasets = filteredShareholders
+                    .filter(sh => selectedShareholders.size === 0 || selectedShareholders.has(sh.index))
+                    .map(sh => ({
+                        label: sh.name,
+                        data: sh.shares.map((share, i) => ({
+                            x: dates[i],
+                            y: share
+                        })),
+                        borderColor: sh.isMajor ? '#ff4757' : colors[sh.index],
+                        backgroundColor: (sh.isMajor ? '#ff4757' : colors[sh.index]) + '20',
+                        borderWidth: highlightedIndex === sh.index ? 4 : (sh.isMajor ? 3 : 2),
+                        pointRadius: sh.isMajor ? 5 : 3,
+                        pointHoverRadius: 8,
+                        tension: 0.1,
+                        spanGaps: true
+                    }));
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'line',
+                    data: { datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: true
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: true,
+                                mode: 'nearest',
+                                intersect: true,
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                borderColor: '#fff',
+                                borderWidth: 1,
+                                padding: 12,
+                                displayColors: true,
+                                callbacks: {
+                                    title: function(tooltipItems) {
+                                        if (tooltipItems.length > 0) {
+                                            return tooltipItems[0].raw.x;
+                                        }
+                                        return '';
+                                    },
+                                    label: function(context) {
+                                        const label = context.dataset.label || '';
+                                        const value = context.parsed.y;
+                                        if (value !== null) {
+                                            const totalShares = 36892.31;
+                                            const ratio = (value / totalShares * 100).toFixed(2);
+                                            return `${label}: ${value.toFixed(2)}万股 (${ratio}%)`;
+                                        }
+                                        return `${label}: 无数据`;
+                                    },
+                                    afterLabel: function(context) {
+                                        const dataIndex = context.dataIndex;
+                                        const dataset = context.dataset;
+                                        if (dataIndex > 0) {
+                                            const currentValue = dataset.data[dataIndex].y;
+                                            const previousValue = dataset.data[dataIndex - 1].y;
+                                            if (currentValue !== null && previousValue !== null) {
+                                                const change = currentValue - previousValue;
+                                                const changePercent = (change / previousValue * 100).toFixed(2);
+                                                const arrow = change > 0 ? '↑' : '↓';
+                                                return `环比: ${arrow} ${Math.abs(change).toFixed(2)}万股 (${changePercent}%)`;
+                                            }
+                                        }
+                                        return '';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'category',
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 10
+                                    },
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 11
+                                    },
+                                    callback: function(value) {
+                                        return value + '万股';
+                                    }
+                                }
+                            }
+                        },
+                        onHover: (event, activeElements) => {
+                            chartRef.current.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [filteredShareholders, selectedShareholders, highlightedIndex]);
+
+            const toggleShareholder = (index) => {
+                setSelectedShareholders(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(index)) {
+                        newSet.delete(index);
+                    } else {
+                        newSet.add(index);
+                    }
+                    return newSet;
+                });
+            };
+
+            const handleSort = (key, dateIndex = null) => {
+                setSortConfig(prev => {
+                    const isSameKey = prev.key === key && prev.dateIndex === dateIndex;
+                    return {
+                        key,
+                        direction: isSameKey && prev.direction === 'desc' ? 'asc' : 'desc',
+                        dateIndex
+                    };
+                });
+            };
+
+            const getSortedShareholders = () => {
+                if (!sortConfig.key) return shareholdersWithAvg;
+                
+                return [...shareholdersWithAvg].sort((a, b) => {
+                    let aValue, bValue;
+                    
+                    if (sortConfig.key === 'name') {
+                        aValue = a.name;
+                        bValue = b.name;
+                        return sortConfig.direction === 'asc' 
+                            ? aValue.localeCompare(bValue)
+                            : bValue.localeCompare(aValue);
+                    } else if (sortConfig.key === 'date') {
+                        aValue = a.shares[sortConfig.dateIndex];
+                        bValue = b.shares[sortConfig.dateIndex];
+                        
+                        if (aValue === null && bValue === null) return 0;
+                        if (aValue === null) return 1;
+                        if (bValue === null) return -1;
+                        
+                        return sortConfig.direction === 'asc'
+                            ? aValue - bValue
+                            : bValue - aValue;
+                    }
+                    
+                    return 0;
+                });
+            };
+
+            const sortedShareholders = getSortedShareholders();
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>传奇生物 - 股东持股变化分析（完整版）</h1>
+                        <p>数据时间范围: 2022年12月 - 2025年9月（共24个时间点）</p>
+                    </div>
+
+                    <div className="content">
+                        {/* 统计卡片 */}
+                        <div className="stats">
+                            <div className="stat-card">
+                                <div className="stat-label">股东总数</div>
+                                <div className="stat-value">{shareholders.length}</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-label">时间点</div>
+                                <div className="stat-value">{dates.length}个</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-label">数据记录</div>
+                                <div className="stat-value">{shareholdersWithAvg.reduce((sum, sh) => sum + sh.dataPoints, 0)}条</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-label">主要股东</div>
+                                <div className="stat-value">{shareholdersWithAvg.filter(sh => sh.isMajor).length}个</div>
+                            </div>
+                        </div>
+
+                        {/* 图表部分 */}
+                        <div className="section">
+                            <div className="section-title">📈 持股变化趋势图</div>
+                            
+                            <div className="controls">
+                                <div className="search-box">
+                                    <span className="search-icon">🔍</span>
+                                    <input
+                                        type="text"
+                                        placeholder="搜索股东名称（如：金斯瑞）..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                
+                                <div className="control-group">
+                                    <label>显示前</label>
+                                    <select value={showTop} onChange={(e) => setShowTop(Number(e.target.value))}>
+                                        <option value={5}>5名</option>
+                                        <option value={10}>10名</option>
+                                        <option value={15}>15名</option>
+                                        <option value={20}>20名</option>
+                                        <option value={30}>30名</option>
+                                        <option value={999}>全部</option>
+                                    </select>
+                                </div>
+                                
+                                <div className="control-group">
+                                    <button
+                                        onClick={() => setSelectedShareholders(new Set())}
+                                        style={{
+                                            padding: '8px 16px',
+                                            background: '#667eea',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontWeight: '600'
+                                        }}
+                                    >
+                                        显示全部
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="chart-container">
+                                <div className="chart-wrapper">
+                                    <canvas ref={chartRef}></canvas>
+                                </div>
+                                
+                                <div className="legend">
+                                    {filteredShareholders.map((sh) => (
+                                        <div
+                                            key={sh.index}
+                                            className="legend-item"
+                                            onClick={() => toggleShareholder(sh.index)}
+                                            onMouseEnter={() => setHighlightedIndex(sh.index)}
+                                            onMouseLeave={() => setHighlightedIndex(null)}
+                                            style={{
+                                                opacity: selectedShareholders.size > 0 && !selectedShareholders.has(sh.index) ? 0.4 : 1,
+                                                fontWeight: highlightedIndex === sh.index ? 'bold' : 'normal',
+                                                background: sh.isMajor ? '#fff3cd' : 'transparent'
+                                            }}
+                                        >
+                                            <div
+                                                className="legend-color"
+                                                style={{ backgroundColor: sh.isMajor ? '#ff4757' : colors[sh.index] }}
+                                            ></div>
+                                            <span className="legend-label">
+                                                {sh.name} 
+                                                {sh.isMajor && <span className="major-shareholder-indicator">主要股东</span>}
+                                                <span style={{fontSize: '11px', marginLeft: '5px', color: '#888'}}>
+                                                    ({sh.dataPoints}个数据点, 均值{sh.avgShares.toFixed(0)}万股)
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 数据表格部分 */}
+                        <div className="section">
+                            <div className="section-title">📊 完整数据表格</div>
+                            
+                            <div className="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th 
+                                                className="shareholder-name"
+                                                onClick={() => handleSort('name')}
+                                                title="点击排序"
+                                                style={{position: 'sticky', left: 0, background: '#f8f9fa'}}
+                                            >
+                                                股东名称
+                                                {sortConfig.key === 'name' && (
+                                                    <span style={{marginLeft: '5px', color: '#667eea'}}>
+                                                        {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                                                    </span>
+                                                )}
+                                            </th>
+                                            {dates.map((date, idx) => (
+                                                <th 
+                                                    key={date} 
+                                                    className="date-header"
+                                                    onClick={() => handleSort('date', idx)}
+                                                    title="点击按此日期排序"
+                                                >
+                                                    {date}
+                                                    {sortConfig.key === 'date' && sortConfig.dateIndex === idx && (
+                                                        <span style={{display: 'block', color: '#667eea'}}>
+                                                            {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                                                        </span>
+                                                    )}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sortedShareholders.map((sh) => (
+                                            <tr key={sh.index} className={sh.isMajor ? 'highlight-major' : ''}>
+                                                <td className="shareholder-name">
+                                                    {sh.name}
+                                                    {sh.isMajor && <span className="major-shareholder-indicator">主要</span>}
+                                                </td>
+                                                {sh.shares.map((share, idx) => (
+                                                    <td
+                                                        key={idx}
+                                                        className={`cell-data ${share !== null ? 'has-data' : 'no-data'}`}
+                                                    >
+                                                        {share !== null ? (
+                                                            <div>
+                                                                <div><strong>{share.toFixed(0)}</strong></div>
+                                                                <div style={{ fontSize: '10px', color: '#666' }}>
+                                                                    {sh.ratios[idx] !== null ? `${sh.ratios[idx].toFixed(1)}%` : '-'}
+                                                                </div>
+                                                            </div>
+                                                        ) : '-'}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
